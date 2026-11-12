@@ -1,0 +1,24 @@
+{
+  "name": "better-moodle",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter @better-moodle/worker dev",
+    "dev:web": "bun --filter @better-moodle/web dev",
+    "dev:worker": "bun --filter @better-moodle/worker dev",
+    "build": "bun run build:shared && bun run build:web",
+    "build:shared": "bun --filter @better-moodle/shared build",
+    "build:web": "bun --filter @better-moodle/web build",
+    "gate:check": "bun ./scripts/check-moodle-gate.ts",
+    "d1:migrate:local": "bun --filter @better-moodle/worker d1:migrate:local",
+    "d1:migrate:prod": "bun --filter @better-moodle/worker d1:migrate:prod"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "wrangler": "^4.161.0"
+  }
+}

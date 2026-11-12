@@ -1,0 +1,12 @@
+# Secretos para desarrollo local de Cloudflare Workers (apps/worker/.dev.vars)
+# Copia este archivo a .dev.vars y rellena tus credenciales.
+
+# Token de WebService de Moodle obtenido en la Fase 0
+MOODLE_TOKEN=tu_token_aqui
+
+# URL base de Moodle (por defecto ITL)
+MOODLE_URL=https://catedig.itlalaguna.edu.mx
+
+# Bot de Telegram para alertas inmediatas
+TELEGRAM_BOT_TOKEN=tu_telegram_bot_token
+TELEGRAM_CHAT_ID=tu_telegram_chat_id
