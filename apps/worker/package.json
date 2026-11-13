@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@better-moodle/shared": "workspace:*",
+    "@pushforge/builder": "^2.0.5",
     "hono": "^4.7.0"
   },
   "devDependencies": {

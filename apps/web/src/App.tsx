@@ -1,160 +1,327 @@
-import { useQuery } from '@tanstack/react-query';
-import { BookOpen, CheckCircle, Bell, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchDashboard, fetchHealth, fetchItems } from './lib/api';
+import { CourseDetailView } from './views/CourseDetailView';
+import { HealthView } from './views/HealthView';
+import { OverviewView } from './views/OverviewView';
+import { SettingsView } from './views/SettingsView';
+import { TasksView } from './views/TasksView';
 
-export default function App() {
-  const { data: health, isLoading: loadingHealth } = useQuery({
-    queryKey: ['health'],
-    queryFn: async () => {
-      const res = await fetch('/api/health');
-      if (!res.ok) throw new Error('Error al conectar con la API');
-      return res.json();
-    },
+type AppView = 'overview' | 'tasks' | 'course' | 'health' | 'settings';
+
+const COMPACT_STORAGE_KEY = 'bm_compact_mode';
+
+function parseInitialView(): { view: AppView; courseId: number | null } {
+  if (typeof window === 'undefined') {
+    return { view: 'overview', courseId: null };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const rawView = params.get('view');
+  const rawCourseId = params.get('courseId');
+  const parsedCourseId =
+    rawCourseId && /^\d+$/.test(rawCourseId) ? Number(rawCourseId) : null;
+
+  if (
+    rawView === 'overview' ||
+    rawView === 'tasks' ||
+    rawView === 'course' ||
+    rawView === 'health' ||
+    rawView === 'settings'
+  ) {
+    return { view: rawView, courseId: parsedCourseId };
+  }
+
+  return { view: 'overview', courseId: parsedCourseId };
+}
+
+function readCompactPreference(): boolean {
+  try {
+    return window.localStorage.getItem(COMPACT_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+const NAV_ITEMS: Array<{
+  id: AppView;
+  label: string;
+  shortLabel: string;
+  icon: string;
+}> = [
+  { id: 'overview', label: 'Resumen', shortLabel: 'Resumen', icon: '◈' },
+  { id: 'tasks', label: 'Tareas', shortLabel: 'Tareas', icon: '☑' },
+  { id: 'course', label: 'Materias', shortLabel: 'Materias', icon: '☰' },
+  { id: 'health', label: 'Salud', shortLabel: 'Salud', icon: '♡' },
+  { id: 'settings', label: 'Configuración', shortLabel: 'Config', icon: '⚙' },
+];
+
+export function App() {
+  const queryClient = useQueryClient();
+  const initial = useMemo(() => parseInitialView(), []);
+  const [activeView, setActiveView] = useState<AppView>(initial.view);
+  const [selectedCourseId, setSelectedCourseId] = useState<number | null>(
+    initial.courseId,
+  );
+  const [compactMode, setCompactMode] = useState<boolean>(() =>
+    readCompactPreference(),
+  );
+
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: fetchDashboard,
   });
 
-  const { data: coursesData, isLoading: loadingCourses } = useQuery({
-    queryKey: ['courses'],
-    queryFn: async () => {
-      const res = await fetch('/api/courses');
-      if (!res.ok) throw new Error('Error al obtener cursos');
-      return res.json();
-    },
-  });
-
-  const { data: itemsData, isLoading: loadingItems } = useQuery({
+  const itemsQuery = useQuery({
     queryKey: ['items'],
-    queryFn: async () => {
-      const res = await fetch('/api/items');
-      if (!res.ok) throw new Error('Error al obtener actividades');
-      return res.json();
-    },
+    queryFn: () => fetchItems(),
   });
+
+  const healthQuery = useQuery({
+    queryKey: ['health'],
+    queryFn: fetchHealth,
+  });
+
+  const dashboard = dashboardQuery.data;
+  const items = itemsQuery.data?.items ?? [];
+  const health = healthQuery.data;
+  const isLoading =
+    dashboardQuery.isLoading || itemsQuery.isLoading || healthQuery.isLoading;
+  const isRefreshing =
+    dashboardQuery.isFetching || itemsQuery.isFetching || healthQuery.isFetching;
+  const errorObj = dashboardQuery.error ?? itemsQuery.error ?? healthQuery.error;
+  const error =
+    errorObj instanceof Error
+      ? errorObj.message
+      : errorObj
+      ? 'No se pudo cargar la información desde la caché local.'
+      : null;
+
+  useEffect(() => {
+    if (selectedCourseId === null && dashboard?.courses[0]) {
+      setSelectedCourseId(dashboard.courses[0].id);
+    }
+  }, [selectedCourseId, dashboard]);
+
+  const navigate = useCallback((view: AppView, courseId?: number) => {
+    setActiveView(view);
+    if (typeof courseId === 'number') {
+      setSelectedCourseId(courseId);
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', view);
+      if (view === 'course' && typeof courseId === 'number') {
+        url.searchParams.set('courseId', String(courseId));
+      } else {
+        url.searchParams.delete('courseId');
+      }
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      // Ignore history errors in restricted contexts
+    }
+  }, []);
+
+  const handleToggleCompactMode = useCallback(() => {
+    setCompactMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(COMPACT_STORAGE_KEY, next ? '1' : '0');
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    void queryClient.invalidateQueries();
+  }, [queryClient]);
+
+  const assignments = useMemo(
+    () => items.filter((item) => item.item_type === 'assignment'),
+    [items],
+  );
+
+  const courses = dashboard?.courses ?? [];
+  const effectiveCourseId = selectedCourseId ?? courses[0]?.id ?? 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Header */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10 px-4 py-3 sm:px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
+    <div
+      className={`min-h-screen bg-slate-950 text-slate-100 ${
+        compactMode ? 'text-[13px] leading-snug' : 'text-sm'
+      }`}
+    >
+      {/* Top navigation bar */}
+      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => navigate('overview')}
+            className="flex items-center gap-2.5 text-left"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-base font-bold text-sky-400 ring-1 ring-sky-500/30">
               BM
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">BetterMoodle</h1>
-              <p className="text-xs text-slate-400">catedig.itlalaguna.edu.mx</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              {loadingHealth ? 'Verificando...' : health?.status === 'ok' ? 'D1 Conectado' : 'Sin sincronizar'}
             </span>
-            <a
-              href="https://catedig.itlalaguna.edu.mx"
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 border border-slate-800 rounded-md px-2.5 py-1 transition"
+            <div>
+              <span className="block text-sm font-semibold tracking-tight text-white">
+                BetterMoodle
+              </span>
+              <span className="block text-[11px] text-slate-400">
+                ITL · CATEDIG Monitor
+              </span>
+            </div>
+          </button>
+
+          {/* Desktop nav */}
+          <nav
+            aria-label="Navegación principal"
+            className="hidden items-center gap-1 md:flex"
+          >
+            {NAV_ITEMS.map((item) => {
+              const active = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => navigate(item.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/30'
+                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            {health && (
+              <span
+                className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium sm:inline-flex ${
+                  health.status === 'ok'
+                    ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'
+                    : health.status === 'circuit_open'
+                    ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30'
+                    : 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30'
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    health.status === 'ok'
+                      ? 'bg-emerald-400'
+                      : health.status === 'circuit_open'
+                      ? 'bg-rose-400'
+                      : 'bg-amber-400'
+                  }`}
+                />
+                {health.status === 'ok'
+                  ? 'Al día'
+                  : health.status === 'circuit_open'
+                  ? 'Circuit Breaker'
+                  : 'Caché degradada'}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="rounded-lg border border-slate-700/80 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 disabled:opacity-50"
             >
-              Moodle Oficial <ExternalLink className="w-3 h-3" />
-            </a>
+              {isRefreshing ? 'Cargando...' : 'Recargar'}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Status Banner */}
-        <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-base">Estado del Motor de Sincronización</h2>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">Fase 1</span>
-            </div>
-            <p className="text-sm text-slate-400">
-              {health?.syncState?.baseline_seeded === 1
-                ? `Último sync exitoso: ${new Date(health.syncState.last_success_at).toLocaleTimeString()}`
-                : 'Esperando primer ciclo de sincronización (Fase 0 y 1).'}
-            </p>
+      {/* Main content */}
+      <main
+        className={`mx-auto max-w-6xl px-4 pb-24 md:pb-10 ${
+          compactMode ? 'pt-4' : 'pt-6'
+        }`}
+      >
+        {error && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="shrink-0 rounded-md bg-rose-500/20 px-2.5 py-1 font-medium text-rose-100 hover:bg-rose-500/30"
+            >
+              Reintentar
+            </button>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Actualizar
-          </button>
-        </section>
+        )}
 
-        {/* Grid de contenido */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Materias */}
-          <div className="md:col-span-1 space-y-4">
-            <h3 className="font-semibold text-sm text-slate-300 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-indigo-400" />
-              Materias Inscritas
-            </h3>
+        {activeView === 'overview' && (
+          <OverviewView
+            dashboard={dashboard}
+            allAssignments={assignments}
+            isLoading={isLoading}
+            onSelectCourse={(courseId) => navigate('course', courseId)}
+            onNavigateTasks={() => navigate('tasks')}
+          />
+        )}
 
-            {loadingCourses ? (
-              <div className="p-4 bg-slate-900 rounded-lg text-sm text-slate-400">Cargando materias...</div>
-            ) : coursesData?.courses?.length ? (
-              <div className="space-y-2">
-                {coursesData.courses.map((c: any) => (
-                  <div key={c.id} className="p-3 bg-slate-900 border border-slate-800/80 rounded-lg hover:border-slate-700 transition">
-                    <p className="text-sm font-medium text-slate-200">{c.fullname}</p>
-                    <p className="text-xs text-slate-400">{c.shortname}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-lg text-center text-xs text-slate-400">
-                No hay materias en caché aún. Se sincronizarán automáticamente al configurar el token.
-              </div>
-            )}
-          </div>
+        {activeView === 'tasks' && (
+          <TasksView
+            assignments={assignments}
+            courses={courses}
+            isLoading={isLoading}
+          />
+        )}
 
-          {/* Tareas y Actividades */}
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="font-semibold text-sm text-slate-300 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              Próximas Tareas y Actividades
-            </h3>
+        {activeView === 'course' && (
+          <CourseDetailView
+            courseId={effectiveCourseId}
+            courses={courses}
+            items={items}
+            onSelectCourse={(courseId) => navigate('course', courseId)}
+            onBack={() => navigate('overview')}
+          />
+        )}
 
-            {loadingItems ? (
-              <div className="p-4 bg-slate-900 rounded-lg text-sm text-slate-400">Cargando actividades...</div>
-            ) : itemsData?.items?.length ? (
-              <div className="space-y-2">
-                {itemsData.items.map((item: any) => (
-                  <div key={item.item_key} className="p-4 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{item.title}</p>
-                      <p className="text-xs text-slate-400">
-                        {item.due_date ? `Vence: ${new Date(item.due_date * 1000).toLocaleString()}` : 'Sin fecha límite'}
-                      </p>
-                    </div>
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                      >
-                        Abrir <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-lg text-center text-sm text-slate-400">
-                <p>No hay tareas sincronizadas aún.</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Ejecuta la Fase 0 para validar el token y activa el cron de Fase 1 para poblarlas.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        {activeView === 'health' && (
+          <HealthView health={health} isLoading={isLoading} />
+        )}
+
+        {activeView === 'settings' && (
+          <SettingsView
+            compactMode={compactMode}
+            onToggleCompactMode={handleToggleCompactMode}
+          />
+        )}
       </main>
+
+      {/* Mobile bottom navigation */}
+      <nav
+        aria-label="Navegación móvil"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-950/95 backdrop-blur md:hidden"
+      >
+        <div className="grid grid-cols-5">
+          {NAV_ITEMS.map((item) => {
+            const active = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => navigate(item.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition ${
+                  active ? 'text-sky-400' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-base leading-none" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.shortLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
+
+export default App;

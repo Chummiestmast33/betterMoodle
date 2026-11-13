@@ -1,76 +1,79 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
+import { runSync } from './sync/engine';
+import { dashboardRouter } from './routes/dashboard';
+import { coursesRouter } from './routes/courses';
+import { healthRouter } from './routes/health';
+import { itemsRouter } from './routes/items';
+import { syncRouter } from './routes/sync';
+import { proxyRouter } from './routes/proxy';
+import { pushRouter } from './routes/push';
+import type { Env } from './types';
 
-export interface Env {
-  DB: D1Database;
-  MOODLE_TOKEN?: string;
-  MOODLE_URL?: string;
-  TELEGRAM_BOT_TOKEN?: string;
-  TELEGRAM_CHAT_ID?: string;
-}
+export type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// API de Salud del Sistema y Estado del Sync (RF-10)
-app.get('/api/health', async (c) => {
-  try {
-    const syncState = await c.env.DB.prepare('SELECT * FROM sync_state WHERE id = 1').first();
-    const lastRun = await c.env.DB.prepare('SELECT * FROM sync_runs ORDER BY id DESC LIMIT 1').first();
-    
-    return c.json({
-      status: 'ok',
-      timestamp: Date.now(),
-      syncState,
-      lastRun
-    });
-  } catch (error: any) {
-    return c.json({
+// Middleware global de seguridad y CORS
+app.use(secureHeaders());
+app.use('/api/*', cors());
+
+// Montaje de sub-routers modulares
+app.route('/api/dashboard', dashboardRouter);
+app.route('/api/courses', coursesRouter);
+app.route('/api/health', healthRouter);
+app.route('/api/items', itemsRouter);
+app.route('/api/sync', syncRouter);
+app.route('/api/files', proxyRouter);
+app.route('/api/push', pushRouter);
+
+// Manejo centralizado de errores globales
+app.onError((err, c) => {
+  console.error('[Worker Error]', err);
+  return c.json(
+    {
+      error: err.message || 'Error interno del servidor',
       status: 'error',
-      error: error?.message ?? 'Error consultando D1'
-    }, 500);
-  }
+      code: 'INTERNAL_ERROR',
+    },
+    500
+  );
 });
 
-// Panel de Materias (RF-02) - Lee exclusivamente de D1
-app.get('/api/courses', async (c) => {
-  try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT id, shortname, fullname, progress, refreshed_at FROM courses ORDER BY fullname ASC'
-    ).all();
-    return c.json({ courses: results });
-  } catch (error: any) {
-    return c.json({ error: error?.message }, 500);
+// Manejo centralizado de 404 con fallback a SPA Static Assets
+app.notFound(async (c) => {
+  if (c.env.ASSETS && !c.req.path.startsWith('/api/')) {
+    return c.env.ASSETS.fetch(c.req.raw);
   }
+  return c.json(
+    {
+      error: 'Ruta no encontrada',
+      code: 'NOT_FOUND',
+    },
+    404
+  );
 });
 
-// Tareas y Actividades (RF-03, RF-05) - Lee exclusivamente de D1
-app.get('/api/items', async (c) => {
-  const type = c.req.query('type');
-  try {
-    let query = 'SELECT * FROM synced_items WHERE deleted_at IS NULL';
-    const params: any[] = [];
+// Manejador del Cron Trigger (RF-07)
+async function scheduled(
+  controller: ScheduledController,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<void> {
+  console.log(`[CRON] Sync disparado a las: ${new Date(controller.scheduledTime).toISOString()}`);
+  ctx.waitUntil(
+    runSync(env, { isScheduled: true }).then((res) => {
+      console.log('[CRON] Resultado:', JSON.stringify(res));
+    })
+  );
+}
 
-    if (type) {
-      query += ' AND item_type = ?';
-      params.push(type);
-    }
+// Exportación nombrada para tests e in-process harnesses
+export { app };
 
-    query += ' ORDER BY due_date ASC, timemodified DESC';
-    const stmt = c.env.DB.prepare(query);
-    const { results } = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
-
-    return c.json({ items: results });
-  } catch (error: any) {
-    return c.json({ error: error?.message }, 500);
-  }
-});
-
-// Export default para Cloudflare Workers
+// Export default para runtime de Cloudflare Workers
 export default {
   fetch: app.fetch,
-
-  // Manejador del Cron Trigger (RF-07)
-  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    console.log(`[CRON] Sync disparado a las: ${new Date(controller.scheduledTime).toISOString()}`);
-    // En las siguientes fases, aquí se ejecuta el diff de Moodle hacia D1
-  }
+  scheduled,
 };

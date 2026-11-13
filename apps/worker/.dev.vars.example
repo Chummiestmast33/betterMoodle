@@ -10,3 +10,8 @@ MOODLE_URL=https://catedig.itlalaguna.edu.mx
 # Bot de Telegram para alertas inmediatas
 TELEGRAM_BOT_TOKEN=tu_telegram_bot_token
 TELEGRAM_CHAT_ID=tu_telegram_chat_id
+
+# Llaves VAPID para Web Push (generar con: bunx --cwd apps/worker pushforge vapid)
+VAPID_PUBLIC_KEY=tu_vapid_public_key
+VAPID_PRIVATE_JWK={"alg":"ES256","kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}
+VAPID_SUBJECT=mailto:tu_correo@itlalaguna.edu.mx

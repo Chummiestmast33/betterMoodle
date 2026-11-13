@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/sw.ts","./src/lib/api.ts","./src/lib/format.ts","./src/lib/push.ts","./src/views/coursedetailview.tsx","./src/views/healthview.tsx","./src/views/overviewview.tsx","./src/views/settingsview.tsx","./src/views/tasksview.tsx"],"version":"5.9.3"}
