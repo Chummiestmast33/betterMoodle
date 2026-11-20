@@ -103,7 +103,7 @@ export function OverviewView({
       {/* Main 2-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Materias */}
-        <section className="space-y-3">
+        <section className="min-w-0 space-y-3">
           <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-indigo-400" />
             Mis Materias
@@ -119,14 +119,14 @@ export function OverviewView({
                   key={course.id}
                   type="button"
                   onClick={() => onSelectCourse(course.id)}
-                  className="w-full text-left p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition group"
+                  className="w-full min-w-0 overflow-hidden text-left p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition group"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-100 truncate group-hover:text-indigo-300 transition">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-100 break-words line-clamp-2 group-hover:text-indigo-300 transition">
                         {course.fullname}
                       </p>
-                      <p className="text-xs text-slate-400 mt-0.5">{course.shortname}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">{course.shortname}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 mt-0.5" />
                   </div>
@@ -151,9 +151,9 @@ export function OverviewView({
         </section>
 
         {/* Right: Próximos Vencimientos + Avisos + Calificaciones */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 min-w-0 space-y-6">
           {/* Próximas entregas */}
-          <section className="space-y-3">
+          <section className="min-w-0 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400" />
@@ -181,11 +181,11 @@ export function OverviewView({
                   return (
                     <div
                       key={task.item_key}
-                      className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3 overflow-hidden"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 max-w-full truncate">
                             {task.course_name || `Curso #${task.course_id}`}
                           </span>
                           {isSubmitted ? (
@@ -229,7 +229,7 @@ export function OverviewView({
 
           {/* Calificaciones y Avisos recientes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <section className="space-y-3">
+            <section className="min-w-0 space-y-3">
               <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <Award className="w-4 h-4 text-cyan-400" />
                 Calificaciones Recientes
@@ -243,9 +243,9 @@ export function OverviewView({
                   {recentGrades.map((g) => (
                     <div
                       key={g.item_key}
-                      className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2"
+                      className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 overflow-hidden"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-slate-200 truncate">{g.title}</p>
                         <p className="text-[11px] text-slate-400 truncate">
                           {g.course_name || `Curso #${g.course_id}`}
@@ -260,7 +260,7 @@ export function OverviewView({
               )}
             </section>
 
-            <section className="space-y-3">
+            <section className="min-w-0 space-y-3">
               <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-violet-400" />
                 Últimos Avisos
@@ -282,12 +282,12 @@ export function OverviewView({
                       })}
                       target="_blank"
                       rel="noreferrer"
-                      className="block p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/40 transition"
+                      className="block min-w-0 overflow-hidden p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/40 transition"
                     >
                       <p className="text-xs font-medium text-slate-200 truncate">{ann.title}</p>
-                      <div className="flex items-center justify-between mt-1 text-[11px] text-slate-400">
-                        <span className="truncate">{ann.course_name || `Curso #${ann.course_id}`}</span>
-                        <span>{formatRelativeTime(ann.timemodified)}</span>
+                      <div className="flex items-center justify-between gap-2 mt-1 text-[11px] text-slate-400">
+                        <span className="truncate min-w-0">{ann.course_name || `Curso #${ann.course_id}`}</span>
+                        <span className="shrink-0">{formatRelativeTime(ann.timemodified)}</span>
                       </div>
                     </a>
                   ))}

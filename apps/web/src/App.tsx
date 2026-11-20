@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchDashboard, fetchHealth, fetchItems } from './lib/api';
 import { CourseDetailView } from './views/CourseDetailView';
@@ -96,16 +96,10 @@ export function App() {
       ? 'No se pudo cargar la información desde la caché local.'
       : null;
 
-  useEffect(() => {
-    if (selectedCourseId === null && dashboard?.courses[0]) {
-      setSelectedCourseId(dashboard.courses[0].id);
-    }
-  }, [selectedCourseId, dashboard]);
-
-  const navigate = useCallback((view: AppView, courseId?: number) => {
+  const navigate = useCallback((view: AppView, courseId?: number | null) => {
     setActiveView(view);
-    if (typeof courseId === 'number') {
-      setSelectedCourseId(courseId);
+    if (view === 'course') {
+      setSelectedCourseId(typeof courseId === 'number' ? courseId : null);
     }
     try {
       const url = new URL(window.location.href);
@@ -143,11 +137,10 @@ export function App() {
   );
 
   const courses = dashboard?.courses ?? [];
-  const effectiveCourseId = selectedCourseId ?? courses[0]?.id ?? 0;
 
   return (
     <div
-      className={`min-h-screen bg-slate-950 text-slate-100 ${
+      className={`min-h-screen overflow-x-clip bg-slate-950 text-slate-100 ${
         compactMode ? 'text-[13px] leading-snug' : 'text-sm'
       }`}
     >
@@ -237,7 +230,7 @@ export function App() {
 
       {/* Main content */}
       <main
-        className={`mx-auto max-w-6xl px-4 pb-24 md:pb-10 ${
+        className={`mx-auto w-full max-w-6xl min-w-0 px-4 pb-24 md:pb-10 ${
           compactMode ? 'pt-4' : 'pt-6'
         }`}
       >
@@ -274,11 +267,11 @@ export function App() {
 
         {activeView === 'course' && (
           <CourseDetailView
-            courseId={effectiveCourseId}
+            courseId={selectedCourseId}
             courses={courses}
             items={items}
             onSelectCourse={(courseId) => navigate('course', courseId)}
-            onBack={() => navigate('overview')}
+            onBack={() => navigate('course', null)}
           />
         )}
 

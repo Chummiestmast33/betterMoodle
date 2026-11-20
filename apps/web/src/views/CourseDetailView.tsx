@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
+  BookOpen,
+  ChevronRight,
   FileText,
   Download,
   ExternalLink,
@@ -20,7 +22,7 @@ import {
 } from '../lib/format';
 
 interface CourseDetailViewProps {
-  courseId: number;
+  courseId: number | null;
   courses: DashboardCourse[];
   items: SyncedItem[];
   onSelectCourse: (id: number) => void;
@@ -37,17 +39,102 @@ export function CourseDetailView({
   onBack,
 }: CourseDetailViewProps) {
   const [tab, setTab] = useState<CourseTab>('contents');
-  const course = courses.find((c) => c.id === courseId);
+  const activeCourseId = courseId ?? 0;
+  const course = courseId !== null ? courses.find((c) => c.id === courseId) : undefined;
 
   const contentsQuery = useQuery({
-    queryKey: ['course-contents', courseId],
-    queryFn: () => fetchCourseContents(courseId),
+    queryKey: ['course-contents', activeCourseId],
+    queryFn: () => fetchCourseContents(activeCourseId),
+    enabled: courseId !== null,
   });
 
   const gradesQuery = useQuery({
-    queryKey: ['course-grades', courseId],
-    queryFn: () => fetchCourseGrades(courseId),
+    queryKey: ['course-grades', activeCourseId],
+    queryFn: () => fetchCourseGrades(activeCourseId),
+    enabled: courseId !== null,
   });
+
+  if (courseId === null) {
+    return (
+      <div className="space-y-4 min-w-0">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center gap-2.5">
+            <BookOpen className="w-5 h-5 text-indigo-400 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-bold text-slate-100">
+                Mis Materias
+              </h2>
+              <p className="text-xs text-slate-400">
+                Selecciona una materia para ver sus recursos, calificaciones y avisos.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {courses.length === 0 ? (
+          <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-sm text-slate-400">
+            No hay materias sincronizadas todavía.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {courses.map((c) => {
+              const pendingCount = items.filter(
+                (i) =>
+                  i.course_id === c.id &&
+                  i.item_type === 'assignment' &&
+                  i.submission_status !== 'submitted' &&
+                  i.submission_status !== 'graded'
+              ).length;
+
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setTab('contents');
+                    onSelectCourse(c.id);
+                  }}
+                  className="w-full min-w-0 overflow-hidden text-left p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition group"
+                >
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-xs font-medium text-indigo-400 truncate">
+                        {c.shortname}
+                      </p>
+                      <p className="text-sm sm:text-base font-semibold text-slate-100 break-words line-clamp-2 group-hover:text-indigo-300 transition">
+                        {c.fullname}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {pendingCount > 0
+                          ? `${pendingCount} ${pendingCount === 1 ? 'tarea pendiente' : 'tareas pendientes'}`
+                          : 'Sin tareas pendientes'}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 mt-1" />
+                  </div>
+
+                  {typeof c.progress === 'number' && (
+                    <div className="mt-3">
+                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                        <span>Progreso</span>
+                        <span>{Math.round(c.progress)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full"
+                          style={{ width: `${Math.min(100, Math.max(0, c.progress))}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const courseAssignments = items.filter(
     (i) => i.course_id === courseId && i.item_type === 'assignment'
@@ -57,34 +144,36 @@ export function CourseDetailView({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0">
       {/* Header & Course Switcher */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={onBack}
               className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition shrink-0"
-              aria-label="Volver al resumen"
+              aria-label="Volver a materias"
+              title="Volver a materias"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
-            <div>
-              <p className="text-xs text-indigo-400 font-medium">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-indigo-400 font-medium break-words">
                 {course?.shortname || `Curso #${courseId}`}
               </p>
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-base sm:text-lg font-bold text-slate-100 break-words leading-snug">
                 {course?.fullname || 'Detalle de Materia'}
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto">
             <select
               value={courseId}
               onChange={(e) => onSelectCourse(Number(e.target.value))}
-              className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+              aria-label="Cambiar materia"
+              className="min-w-0 flex-1 w-full sm:w-auto sm:max-w-xs truncate px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
             >
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -168,9 +257,9 @@ export function CourseDetailView({
                 key={section.id}
                 className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden"
               >
-                <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-100">{section.name}</h3>
-                  <span className="text-[11px] text-slate-500">
+                <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-100 min-w-0 break-words">{section.name}</h3>
+                  <span className="text-[11px] text-slate-500 shrink-0">
                     {section.modules.length} {section.modules.length === 1 ? 'elemento' : 'elementos'}
                   </span>
                 </div>

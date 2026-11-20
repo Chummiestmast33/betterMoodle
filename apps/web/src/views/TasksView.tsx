@@ -137,7 +137,7 @@ export function TasksView({ assignments, courses, isLoading }: TasksViewProps) {
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+            className="w-full sm:w-auto sm:max-w-xs min-w-0 truncate px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
           >
             <option value="all">Todas las materias</option>
             {courses.map((c) => (
@@ -164,11 +164,11 @@ export function TasksView({ assignments, courses, isLoading }: TasksViewProps) {
             return (
               <div
                 key={task.item_key}
-                className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-hidden"
               >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 max-w-full truncate">
                       {courseLabel}
                     </span>
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded border ${badge.cls}`}>
