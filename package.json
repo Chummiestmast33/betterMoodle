@@ -16,7 +16,12 @@
     "gate:check": "bun ./scripts/check-moodle-gate.ts",
     "get-token": "bun ./scripts/get-token.ts",
     "test:mutation": "bun ./scripts/run-mutation-tests.ts",
-    "vapid:generate": "bunx --cwd apps/worker pushforge vapid",
+    "audit:dist": "bun ./scripts/audit-dist.ts",
+    "secrets:push": "bun ./scripts/push-secrets.ts",
+    "deploy:dry-run": "bun run build && bun run audit:dist && bun --cwd apps/worker wrangler deploy --dry-run",
+    "deploy": "bun run build && bun run audit:dist && bun --cwd apps/worker wrangler deploy",
+    "tail": "bun --cwd apps/worker wrangler tail",
+    "vapid:generate": "bun --cwd apps/worker pushforge vapid",
     "d1:migrate:local": "bun --filter @better-moodle/worker d1:migrate:local",
     "d1:migrate:prod": "bun --filter @better-moodle/worker d1:migrate:prod"
   },

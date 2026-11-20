@@ -6,16 +6,25 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "MOODLE_URL": "https://catedig.itlalaguna.edu.mx"
+  },
   "assets": {
     "directory": "../web/dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "catedig-db",
-      "database_id": "catedig-db-local",
+      "database_id": "80d817b5-da14-44b4-8a5b-9a8e2e1ec0cf",
       "migrations_dir": "migrations"
     }
   ],

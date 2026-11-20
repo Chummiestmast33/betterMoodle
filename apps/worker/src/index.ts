@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { runSync } from './sync/engine';
 import { dashboardRouter } from './routes/dashboard';
@@ -15,9 +14,12 @@ export type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Middleware global de seguridad y CORS
+// Middleware global de seguridad y cabeceras anti-indexación (mismo origen RNF-09)
 app.use(secureHeaders());
-app.use('/api/*', cors());
+app.use('*', async (c, next) => {
+  await next();
+  c.header('X-Robots-Tag', 'noindex, nofollow');
+});
 
 // Montaje de sub-routers modulares
 app.route('/api/dashboard', dashboardRouter);
