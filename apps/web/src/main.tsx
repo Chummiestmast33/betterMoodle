@@ -2,7 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
-import './index.css';
+const stylesheet = document.createElement('link');
+stylesheet.rel = 'stylesheet';
+stylesheet.href = new URL('./index.css', import.meta.url).href;
+document.head.appendChild(stylesheet);
 
 const queryClient = new QueryClient({
   defaultOptions: {
