@@ -1,17 +1,37 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft,
-  BookOpen,
-  ChevronRight,
-  FileText,
-  Download,
-  ExternalLink,
-  Award,
-  FolderOpen,
-  Megaphone,
-  CheckSquare,
-} from 'lucide-react';
+  Badge,
+  Body1,
+  Body1Strong,
+  Button,
+  Caption1,
+  Card,
+  CounterBadge,
+  Dropdown,
+  Option,
+  ProgressBar,
+  Spinner,
+  Subtitle2,
+  Tab,
+  TabList,
+  Title3,
+  makeStyles,
+  shorthands,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  ArrowDownload20Regular,
+  ArrowLeft20Regular,
+  BookOpen20Regular,
+  CheckboxChecked20Regular,
+  ChevronRight20Regular,
+  Document20Regular,
+  FolderOpen20Regular,
+  Megaphone20Regular,
+  Open16Regular,
+  Ribbon20Regular,
+} from '@fluentui/react-icons';
 import type { DashboardCourse, SyncedItem } from '@better-moodle/shared';
 import { fetchCourseContents, fetchCourseGrades } from '../lib/api';
 import {
@@ -25,22 +45,325 @@ interface CourseDetailViewProps {
   courseId: number | null;
   courses: DashboardCourse[];
   items: SyncedItem[];
+  compactMode?: boolean;
   onSelectCourse: (id: number) => void;
   onBack: () => void;
 }
 
 type CourseTab = 'contents' | 'grades' | 'activity';
 
+const useStyles = makeStyles({
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    minWidth: 0,
+  },
+  directoryHeader: {
+    padding: '16px',
+    minWidth: 0,
+  },
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    minWidth: 0,
+  },
+  headerText: {
+    minWidth: 0,
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  muted: {
+    color: tokens.colorNeutralForeground3,
+  },
+  brandText: {
+    color: tokens.colorBrandForeground1,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+  },
+  coursesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '12px',
+    '@media (min-width: 768px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  courseCard: {
+    padding: '16px',
+    gap: '12px',
+    minWidth: 0,
+    width: '100%',
+    textAlign: 'left',
+  },
+  courseCardTop: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '10px',
+    minWidth: 0,
+  },
+  courseTitle: {
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+  },
+  courseShort: {
+    color: tokens.colorBrandForeground1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  progressMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    color: tokens.colorNeutralForeground3,
+    marginBottom: '4px',
+  },
+  detailHeaderCard: {
+    padding: '16px',
+    gap: '12px',
+    minWidth: 0,
+  },
+  detailHeaderTop: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    minWidth: 0,
+    '@media (min-width: 640px)': {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+  },
+  backGroup: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  switcherGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    minWidth: 0,
+    width: '100%',
+    '@media (min-width: 640px)': {
+      width: 'auto',
+      flexShrink: 0,
+    },
+  },
+  switcherSelectWrap: {
+    minWidth: 0,
+    flexGrow: 1,
+    '@media (min-width: 640px)': {
+      width: '240px',
+      flexGrow: 0,
+    },
+  },
+  switcherSelect: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%',
+  },
+  tabsDivider: {
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: tokens.colorNeutralStroke2,
+    paddingTop: '8px',
+    minWidth: 0,
+  },
+  tabListWrap: {
+    flexWrap: 'wrap',
+    rowGap: '4px',
+  },
+  tabContent: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  sectionCard: {
+    padding: '0',
+    overflow: 'hidden',
+    minWidth: 0,
+  },
+  sectionCardCompact: {
+    minWidth: 0,
+  },
+  sectionHeader: {
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    paddingTop: '12px',
+    paddingBottom: '12px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
+  sectionTitle: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+  },
+  moduleList: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  moduleItem: {
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+  },
+  moduleTop: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '10px',
+    minWidth: 0,
+  },
+  moduleTitleGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  truncateText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  filesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '8px',
+    paddingLeft: '10px',
+    borderLeftWidth: '2px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: tokens.colorNeutralStroke2,
+    '@media (min-width: 640px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  fileLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    padding: '10px',
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    color: 'inherit',
+    textDecorationLine: 'none',
+    minWidth: 0,
+  },
+  fileLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  fileMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  gradeRow: {
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+    '@media (min-width: 640px)': {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+  },
+  gradeInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  gradeFeedback: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase200,
+    lineHeight: tokens.lineHeightBase200,
+    overflowWrap: 'anywhere',
+  },
+  gradeRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flexShrink: 0,
+  },
+  activityGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '16px',
+    '@media (min-width: 768px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  activityCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    minWidth: 0,
+  },
+  colHeading: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  activityCard: {
+    padding: '14px',
+    gap: '4px',
+    minWidth: 0,
+  },
+  emptyCard: {
+    padding: '24px',
+    textAlign: 'center',
+    color: tokens.colorNeutralForeground3,
+  },
+  loadingWrap: {
+    padding: '28px',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+});
+
 export function CourseDetailView({
   courseId,
   courses,
   items,
+  compactMode,
   onSelectCourse,
   onBack,
 }: CourseDetailViewProps) {
+  const styles = useStyles();
   const [tab, setTab] = useState<CourseTab>('contents');
   const activeCourseId = courseId ?? 0;
-  const course = courseId !== null ? courses.find((c) => c.id === courseId) : undefined;
+  const course =
+    courseId !== null ? courses.find((c) => c.id === courseId) : undefined;
 
   const contentsQuery = useQuery({
     queryKey: ['course-contents', activeCourseId],
@@ -56,78 +379,77 @@ export function CourseDetailView({
 
   if (courseId === null) {
     return (
-      <div className="space-y-4 min-w-0">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-5 h-5 text-indigo-400 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-base sm:text-lg font-bold text-slate-100">
-                Mis Materias
-              </h2>
-              <p className="text-xs text-slate-400">
+      <div className={styles.page}>
+        <Card className={styles.directoryHeader}>
+          <div className={styles.headerRow}>
+            <BookOpen20Regular />
+            <div className={styles.headerText}>
+              <Title3>Mis Materias</Title3>
+              <Caption1 className={styles.muted}>
                 Selecciona una materia para ver sus recursos, calificaciones y avisos.
-              </p>
+              </Caption1>
             </div>
           </div>
-        </div>
+        </Card>
 
         {courses.length === 0 ? (
-          <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-sm text-slate-400">
-            No hay materias sincronizadas todavía.
-          </div>
+          <Card className={styles.emptyCard} appearance="outline">
+            <Body1>No hay materias sincronizadas todavía.</Body1>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className={styles.coursesGrid}>
             {courses.map((c) => {
               const pendingCount = items.filter(
                 (i) =>
                   i.course_id === c.id &&
                   i.item_type === 'assignment' &&
                   i.submission_status !== 'submitted' &&
-                  i.submission_status !== 'graded'
+                  i.submission_status !== 'graded',
               ).length;
 
               return (
-                <button
+                <Card
                   key={c.id}
-                  type="button"
+                  className={styles.courseCard}
                   onClick={() => {
                     setTab('contents');
                     onSelectCourse(c.id);
                   }}
-                  className="w-full min-w-0 overflow-hidden text-left p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition group"
                 >
-                  <div className="flex items-start justify-between gap-3 min-w-0">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="text-xs font-medium text-indigo-400 truncate">
+                  <div className={styles.courseCardTop}>
+                    <div className={styles.headerText}>
+                      <Caption1 className={styles.courseShort}>
                         {c.shortname}
-                      </p>
-                      <p className="text-sm sm:text-base font-semibold text-slate-100 break-words line-clamp-2 group-hover:text-indigo-300 transition">
+                      </Caption1>
+                      <Body1Strong className={styles.courseTitle}>
                         {c.fullname}
-                      </p>
-                      <p className="text-xs text-slate-400">
+                      </Body1Strong>
+                      <Caption1 className={styles.muted}>
                         {pendingCount > 0
-                          ? `${pendingCount} ${pendingCount === 1 ? 'tarea pendiente' : 'tareas pendientes'}`
+                          ? `${pendingCount} ${
+                              pendingCount === 1
+                                ? 'tarea pendiente'
+                                : 'tareas pendientes'
+                            }`
                           : 'Sin tareas pendientes'}
-                      </p>
+                      </Caption1>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 mt-1" />
+                    <ChevronRight20Regular />
                   </div>
 
                   {typeof c.progress === 'number' && (
-                    <div className="mt-3">
-                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                        <span>Progreso</span>
-                        <span>{Math.round(c.progress)}%</span>
+                    <div>
+                      <div className={styles.progressMeta}>
+                        <Caption1>Progreso</Caption1>
+                        <Caption1>{Math.round(c.progress)}%</Caption1>
                       </div>
-                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 rounded-full"
-                          style={{ width: `${Math.min(100, Math.max(0, c.progress))}%` }}
-                        />
-                      </div>
+                      <ProgressBar
+                        value={Math.min(100, Math.max(0, c.progress)) / 100}
+                        thickness="medium"
+                      />
                     </div>
                   )}
-                </button>
+                </Card>
               );
             })}
           </div>
@@ -137,185 +459,239 @@ export function CourseDetailView({
   }
 
   const courseAssignments = items.filter(
-    (i) => i.course_id === courseId && i.item_type === 'assignment'
+    (i) => i.course_id === courseId && i.item_type === 'assignment',
   );
   const courseAnnouncements = items.filter(
-    (i) => i.course_id === courseId && i.item_type === 'announcement'
+    (i) => i.course_id === courseId && i.item_type === 'announcement',
   );
 
   return (
-    <div className="space-y-5 min-w-0">
-      {/* Header & Course Switcher */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          <div className="flex items-start gap-3 min-w-0 flex-1">
-            <button
-              type="button"
+    <div className={styles.page}>
+      <Card className={styles.detailHeaderCard}>
+        <div className={styles.detailHeaderTop}>
+          <div className={styles.backGroup}>
+            <Button
+              appearance="subtle"
+              icon={<ArrowLeft20Regular />}
               onClick={onBack}
-              className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition shrink-0"
               aria-label="Volver a materias"
               title="Volver a materias"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-indigo-400 font-medium break-words">
+            />
+            <div className={styles.headerText}>
+              <Caption1 className={styles.brandText}>
                 {course?.shortname || `Curso #${courseId}`}
-              </p>
-              <h2 className="text-base sm:text-lg font-bold text-slate-100 break-words leading-snug">
+              </Caption1>
+              <Title3 className={styles.courseTitle}>
                 {course?.fullname || 'Detalle de Materia'}
-              </h2>
+              </Title3>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto">
-            <select
-              value={courseId}
-              onChange={(e) => onSelectCourse(Number(e.target.value))}
-              aria-label="Cambiar materia"
-              className="min-w-0 flex-1 w-full sm:w-auto sm:max-w-xs truncate px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-            >
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.shortname} — {c.fullname}
-                </option>
-              ))}
-            </select>
-            <a
+          <div className={styles.switcherGroup}>
+            <div className={styles.switcherSelectWrap}>
+              {(() => {
+                const selectedCourseLabel = course
+                  ? `${course.shortname} — ${course.fullname}`
+                  : `Curso #${courseId}`;
+                return (
+                  <Dropdown
+                    className={styles.switcherSelect}
+                    value={selectedCourseLabel}
+                    selectedOptions={[String(courseId)]}
+                    button={{
+                      children: (
+                        <span
+                          style={{
+                            display: 'block',
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {selectedCourseLabel}
+                        </span>
+                      ),
+                    }}
+                    onOptionSelect={(_e, data) => {
+                      if (data.optionValue) {
+                        onSelectCourse(Number(data.optionValue));
+                      }
+                    }}
+                    aria-label="Cambiar materia"
+                    listbox={{ style: { maxWidth: 'min(92vw, 420px)' } }}
+                  >
+                    {courses.map((c) => {
+                      const label = `${c.shortname} — ${c.fullname}`;
+                      return (
+                        <Option key={c.id} value={String(c.id)} text={label}>
+                          {label}
+                        </Option>
+                      );
+                    })}
+                  </Dropdown>
+                );
+              })()}
+            </div>
+
+            <Button
+              as="a"
+              appearance="secondary"
+              size="small"
               href={`https://catedig.itlalaguna.edu.mx/course/view.php?id=${courseId}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition shrink-0"
+              icon={<Open16Regular />}
+              iconPosition="after"
+              style={{ flexShrink: 0 }}
             >
-              Moodle <ExternalLink className="w-3 h-3" />
-            </a>
+              Moodle
+            </Button>
           </div>
         </div>
 
-        {/* Sub-tabs */}
-        <div className="flex gap-2 border-t border-slate-800 pt-3 overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setTab('contents')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition shrink-0 ${
-              tab === 'contents'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700'
-            }`}
+        <div className={styles.tabsDivider}>
+          <TabList
+            className={styles.tabListWrap}
+            selectedValue={tab}
+            onTabSelect={(_e, data) => setTab(data.value as CourseTab)}
+            size="small"
           >
-            <FolderOpen className="w-3.5 h-3.5" />
-            Recursos y Temario
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTab('grades')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition shrink-0 ${
-              tab === 'grades'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            Calificaciones ({gradesQuery.data?.grades.length ?? 0})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTab('activity')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition shrink-0 ${
-              tab === 'activity'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            Tareas y Avisos ({courseAssignments.length + courseAnnouncements.length})
-          </button>
+            <Tab value="contents" icon={<FolderOpen20Regular />}>
+              Recursos y Temario
+            </Tab>
+            <Tab value="grades" icon={<Ribbon20Regular />}>
+              <span className={styles.tabContent}>
+                <span>Calificaciones</span>
+                <CounterBadge
+                  count={gradesQuery.data?.grades.length ?? 0}
+                  size="small"
+                  appearance={tab === 'grades' ? 'filled' : 'ghost'}
+                  color={tab === 'grades' ? 'brand' : 'informative'}
+                  showZero
+                />
+              </span>
+            </Tab>
+            <Tab value="activity" icon={<CheckboxChecked20Regular />}>
+              <span className={styles.tabContent}>
+                <span>Tareas y Avisos</span>
+                <CounterBadge
+                  count={courseAssignments.length + courseAnnouncements.length}
+                  size="small"
+                  appearance={tab === 'activity' ? 'filled' : 'ghost'}
+                  color={tab === 'activity' ? 'brand' : 'informative'}
+                  showZero
+                />
+              </span>
+            </Tab>
+          </TabList>
         </div>
-      </div>
+      </Card>
 
-      {/* Tab Content */}
       {tab === 'contents' && (
-        <div className="space-y-4">
+        <div className={styles.page}>
           {contentsQuery.isLoading ? (
-            <div className="p-6 text-center text-sm text-slate-400">
-              Cargando recursos cacheados en D1...
+            <div className={styles.loadingWrap}>
+              <Spinner label="Cargando recursos cacheados en D1..." />
             </div>
           ) : !contentsQuery.data?.sections.length ? (
-            <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
-              <p className="text-sm text-slate-300">
+            <Card className={styles.emptyCard} appearance="outline">
+              <Body1>
                 Aún no hay secciones o archivos cacheados para esta materia.
-              </p>
-              <p className="text-xs text-slate-500">
+              </Body1>
+              <Caption1 className={styles.muted}>
                 Los recursos se indexan desde Moodle en segundo plano; puedes forzar una sincronización desde la pestaña Salud.
-              </p>
-            </div>
+              </Caption1>
+            </Card>
           ) : (
             contentsQuery.data.sections.map((section) => (
-              <div
+              <Card
                 key={section.id}
-                className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden"
+                className={
+                  compactMode ? styles.sectionCardCompact : styles.sectionCard
+                }
               >
-                <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-slate-100 min-w-0 break-words">{section.name}</h3>
-                  <span className="text-[11px] text-slate-500 shrink-0">
-                    {section.modules.length} {section.modules.length === 1 ? 'elemento' : 'elementos'}
-                  </span>
+                <div className={styles.sectionHeader}>
+                  <Body1Strong className={styles.sectionTitle}>
+                    {section.name}
+                  </Body1Strong>
+                  <Caption1 className={styles.muted} style={{ flexShrink: 0 }}>
+                    {section.modules.length}{' '}
+                    {section.modules.length === 1 ? 'elemento' : 'elementos'}
+                  </Caption1>
                 </div>
 
                 {section.modules.length === 0 ? (
-                  <p className="px-4 py-3 text-xs text-slate-500">Sección sin recursos publicados.</p>
+                  <div style={{ padding: '12px 16px' }}>
+                    <Caption1 className={styles.muted}>
+                      Sección sin recursos publicados.
+                    </Caption1>
+                  </div>
                 ) : (
-                  <div className="divide-y divide-slate-800/70">
+                  <div className={styles.moduleList}>
                     {section.modules.map((mod) => (
-                      <div key={mod.id} className="p-4 space-y-2.5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                                {mod.modname}
-                              </span>
-                              <p className="text-sm font-medium text-slate-200 truncate">{mod.name}</p>
-                            </div>
+                      <div key={mod.id} className={styles.moduleItem}>
+                        <div className={styles.moduleTop}>
+                          <div className={styles.moduleTitleGroup}>
+                            <Badge appearance="tint" color="subtle" size="small">
+                              {mod.modname}
+                            </Badge>
+                            <Body1Strong className={styles.truncateText}>
+                              {mod.name}
+                            </Body1Strong>
                           </div>
 
                           {mod.url && (
-                            <a
+                            <Button
+                              as="a"
+                              appearance="subtle"
+                              size="small"
                               href={mod.url}
                               target="_blank"
                               rel="noreferrer"
-                              className="shrink-0 inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300"
+                              icon={<Open16Regular />}
+                              iconPosition="after"
+                              style={{ flexShrink: 0 }}
                             >
-                              Abrir <ExternalLink className="w-3 h-3" />
-                            </a>
+                              Abrir
+                            </Button>
                           )}
                         </div>
 
                         {mod.contents && mod.contents.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2 border-l-2 border-slate-800">
+                          <div className={styles.filesGrid}>
                             {mod.contents.map((file, idx) => {
-                              const downloadHref = file.proxy_url || buildProxyFileUrl(file.fileurl);
+                              const downloadHref =
+                                file.proxy_url || buildProxyFileUrl(file.fileurl);
                               return (
                                 <a
                                   key={`${mod.id}-${idx}`}
                                   href={downloadHref}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:border-indigo-500/50 transition group"
+                                  className={styles.fileLink}
                                 >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
-                                    <div className="min-w-0">
-                                      <p className="text-xs font-medium text-slate-200 truncate group-hover:text-indigo-300">
-                                        {file.filename}
-                                      </p>
-                                      <p className="text-[10px] text-slate-500">
-                                        {formatFileSize(file.filesize) || file.mimetype || 'Archivo'}
-                                      </p>
+                                  <div className={styles.fileLeft}>
+                                    <Document20Regular
+                                      style={{
+                                        color: tokens.colorBrandForeground1,
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    <div className={styles.fileMeta}>
+                                      <Caption1 className={styles.truncateText}>
+                                        <strong>{file.filename}</strong>
+                                      </Caption1>
+                                      <Caption1 className={styles.muted}>
+                                        {formatFileSize(file.filesize) ||
+                                          file.mimetype ||
+                                          'Archivo'}
+                                      </Caption1>
                                     </div>
                                   </div>
-                                  <Download className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-300 shrink-0" />
+                                  <ArrowDownload20Regular
+                                    style={{ flexShrink: 0 }}
+                                  />
                                 </a>
                               );
                             })}
@@ -325,134 +701,149 @@ export function CourseDetailView({
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             ))
           )}
         </div>
       )}
 
       {tab === 'grades' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <Card className={styles.sectionCard}>
           {gradesQuery.isLoading ? (
-            <div className="p-6 text-center text-sm text-slate-400">Cargando calificaciones...</div>
+            <div className={styles.loadingWrap}>
+              <Spinner label="Cargando calificaciones..." />
+            </div>
           ) : !gradesQuery.data?.grades.length ? (
-            <div className="p-6 text-center text-sm text-slate-400">
-              No hay elementos de calificación registrados para esta materia.
+            <div className={styles.emptyCard}>
+              <Body1>
+                No hay elementos de calificación registrados para esta materia.
+              </Body1>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800">
+            <div>
               {gradesQuery.data.grades.map((g) => (
-                <div
-                  key={g.item_key}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
+                <div key={g.item_key} className={styles.gradeRow}>
+                  <div className={styles.gradeInfo}>
+                    <div className={styles.moduleTitleGroup}>
                       {g.itemtype && (
-                        <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                          {g.itemtype === 'course' ? 'Total' : g.itemmodule || g.itemtype}
-                        </span>
+                        <Badge appearance="tint" color="subtle" size="small">
+                          {g.itemtype === 'course'
+                            ? 'Total'
+                            : g.itemmodule || g.itemtype}
+                        </Badge>
                       )}
-                      <p className="text-sm font-medium text-slate-100">{g.title}</p>
+                      <Body1Strong className={styles.courseTitle}>
+                        {g.title}
+                      </Body1Strong>
                     </div>
                     {g.feedback && (
-                      <p
-                        className="text-xs text-slate-400 line-clamp-2"
+                      <div
+                        className={styles.gradeFeedback}
                         dangerouslySetInnerHTML={{ __html: g.feedback }}
                       />
                     )}
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                      {typeof g.grademax === 'number' && (
-                        <span>
-                          Rango: {g.grademin ?? 0} – {g.grademax}
-                        </span>
-                      )}
-                      {g.percentage_formatted && <span>({g.percentage_formatted})</span>}
-                    </div>
+                    <Caption1 className={styles.muted}>
+                      {typeof g.grademax === 'number'
+                        ? `Rango: ${g.grademin ?? 0} – ${g.grademax}`
+                        : ''}
+                      {g.percentage_formatted ? ` (${g.percentage_formatted})` : ''}
+                    </Caption1>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className={`text-base font-bold px-3 py-1 rounded-lg border ${
-                        g.grade_num !== null
-                          ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
-                          : 'bg-slate-950 text-slate-500 border-slate-800'
-                      }`}
+                  <div className={styles.gradeRight}>
+                    <Badge
+                      appearance="tint"
+                      color={g.grade_num !== null ? 'informative' : 'subtle'}
+                      size="large"
                     >
                       {g.grade_num !== null ? g.grade_num : '—'}
-                    </span>
+                    </Badge>
                     {g.url && (
-                      <a
+                      <Button
+                        as="a"
+                        appearance="subtle"
+                        size="small"
                         href={g.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-slate-400 hover:text-indigo-300"
+                        icon={<Open16Regular />}
                         title="Ver en Moodle"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+                        aria-label="Ver en Moodle"
+                      />
                     )}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {tab === 'activity' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-emerald-400" />
+        <div className={styles.activityGrid}>
+          <div className={styles.activityCol}>
+            <Subtitle2 className={styles.colHeading}>
+              <CheckboxChecked20Regular />
               Tareas de la Materia
-            </h3>
+            </Subtitle2>
             {courseAssignments.length === 0 ? (
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                Sin tareas registradas.
-              </div>
+              <Card className={styles.emptyCard} appearance="outline">
+                <Caption1>Sin tareas registradas.</Caption1>
+              </Card>
             ) : (
-              <div className="space-y-2">
-                {courseAssignments.map((a) => (
-                  <a
-                    key={a.item_key}
-                    href={getMoodleDeepLink(a)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/40 transition"
-                  >
-                    <p className="text-sm font-medium text-slate-100">{a.title}</p>
-                    <p className="text-xs text-slate-400 mt-1">{formatUnixDate(a.due_date)}</p>
-                  </a>
-                ))}
-              </div>
+              courseAssignments.map((a) => (
+                <Card
+                  key={a.item_key}
+                  className={styles.activityCard}
+                  onClick={() =>
+                    window.open(
+                      getMoodleDeepLink(a),
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                >
+                  <Body1Strong className={styles.courseTitle}>
+                    {a.title}
+                  </Body1Strong>
+                  <Caption1 className={styles.muted}>
+                    {formatUnixDate(a.due_date)}
+                  </Caption1>
+                </Card>
+              ))
             )}
           </div>
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-violet-400" />
+          <div className={styles.activityCol}>
+            <Subtitle2 className={styles.colHeading}>
+              <Megaphone20Regular />
               Avisos y Foros
-            </h3>
+            </Subtitle2>
             {courseAnnouncements.length === 0 ? (
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                Sin discusiones o avisos en foros.
-              </div>
+              <Card className={styles.emptyCard} appearance="outline">
+                <Caption1>Sin discusiones o avisos en foros.</Caption1>
+              </Card>
             ) : (
-              <div className="space-y-2">
-                {courseAnnouncements.map((ann) => (
-                  <a
-                    key={ann.item_key}
-                    href={getMoodleDeepLink(ann)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/40 transition"
-                  >
-                    <p className="text-sm font-medium text-slate-100">{ann.title}</p>
-                    <p className="text-xs text-slate-400 mt-1">{formatUnixDate(ann.timemodified)}</p>
-                  </a>
-                ))}
-              </div>
+              courseAnnouncements.map((ann) => (
+                <Card
+                  key={ann.item_key}
+                  className={styles.activityCard}
+                  onClick={() =>
+                    window.open(
+                      getMoodleDeepLink(ann),
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                >
+                  <Body1Strong className={styles.courseTitle}>
+                    {ann.title}
+                  </Body1Strong>
+                  <Caption1 className={styles.muted}>
+                    {formatUnixDate(ann.timemodified)}
+                  </Caption1>
+                </Card>
+              ))
             )}
           </div>
         </div>

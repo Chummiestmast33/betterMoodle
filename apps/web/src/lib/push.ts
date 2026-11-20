@@ -46,6 +46,15 @@ export async function getExistingPushSubscription(): Promise<PushSubscription | 
   return registration.pushManager.getSubscription();
 }
 
+function keysEqual(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
+  if (!a || a.byteLength !== b.byteLength) return false;
+  const viewA = new Uint8Array(a);
+  for (let i = 0; i < viewA.length; i++) {
+    if (viewA[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export async function subscribeBrowserPush(vapidPublicKey: string): Promise<PushSubscription> {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
@@ -53,10 +62,15 @@ export async function subscribeBrowserPush(vapidPublicKey: string): Promise<Push
   }
 
   const registration = await navigator.serviceWorker.ready;
-  const existing = await registration.pushManager.getSubscription();
-  if (existing) return existing;
-
   const keyBytes = urlBase64ToUint8Array(vapidPublicKey);
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    if (keysEqual(existing.options?.applicationServerKey, keyBytes)) {
+      return existing;
+    }
+    await existing.unsubscribe();
+  }
+
   return registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: keyBytes as BufferSource,

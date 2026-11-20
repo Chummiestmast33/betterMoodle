@@ -19,8 +19,8 @@ export default defineConfig({
         description: 'Cliente PWA ultrarrápido y alertas en tiempo real para Moodle ITL.',
         start_url: '/',
         display: 'standalone',
-        background_color: '#020617',
-        theme_color: '#4f46e5',
+        background_color: '#141414',
+        theme_color: '#0f6cbd',
         lang: 'es-MX',
         icons: [
           {
@@ -50,5 +50,17 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('@fluentui/') || id.includes('@griffel/')) {
+            return 'vendor-fluent';
+          }
+          if (id.includes('react-dom') || id.includes('react/') || id.includes('@tanstack/react-query')) {
+            return 'vendor-react';
+          }
+        },
+      },
+    },
   },
 });

@@ -1,39 +1,148 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell,
-  BellOff,
-  Smartphone,
-  Send,
-  CheckCircle2,
-  AlertTriangle,
-  ExternalLink,
-  Share,
-  PlusSquare,
-} from 'lucide-react';
+  Badge,
+  Body1,
+  Body1Strong,
+  Button,
+  Caption1,
+  Card,
+  Link,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  Radio,
+  RadioGroup,
+  Subtitle2,
+  Switch,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  Alert20Regular,
+  AlertOff20Regular,
+  CheckmarkCircle20Regular,
+  Open16Regular,
+  Phone20Regular,
+  Send20Regular,
+  ShareIos20Regular,
+  SquareAdd20Regular,
+} from '@fluentui/react-icons';
 import {
   fetchPushStatus,
+  sendTestPush,
   subscribeWebPush,
   unsubscribeWebPush,
-  sendTestPush,
 } from '../lib/api';
 import {
   detectPushCapabilities,
   getExistingPushSubscription,
   subscribeBrowserPush,
 } from '../lib/push';
+import { useThemeMode, type ThemeMode } from '../lib/theme';
 
 interface SettingsViewProps {
   compactMode: boolean;
   onToggleCompactMode: () => void;
 }
 
-export function SettingsView({ compactMode, onToggleCompactMode }: SettingsViewProps) {
+const useStyles = makeStyles({
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    maxWidth: '768px',
+    minWidth: 0,
+  },
+  card: {
+    padding: '20px',
+    gap: '14px',
+    minWidth: 0,
+  },
+  cardHeaderRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  cardTitleGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  headingWithIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  muted: {
+    color: tokens.colorNeutralForeground3,
+  },
+  iosSteps: {
+    margin: '6px 0 0 0',
+    paddingLeft: '18px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  iosInline: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    verticalAlign: 'middle',
+  },
+  actionsRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+  },
+  prefRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+  },
+  prefText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    minWidth: 0,
+    flexGrow: 1,
+  },
+  themeBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: tokens.colorNeutralStroke2,
+    paddingTop: '12px',
+  },
+  infoCard: {
+    padding: '20px',
+    gap: '8px',
+    minWidth: 0,
+  },
+});
+
+export function SettingsView({
+  compactMode,
+  onToggleCompactMode,
+}: SettingsViewProps) {
+  const styles = useStyles();
   const queryClient = useQueryClient();
+  const { themeMode, setThemeMode } = useThemeMode();
+
   const [caps, setCaps] = useState(() => detectPushCapabilities());
   const [activeEndpoint, setActiveEndpoint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: 'ok' | 'err';
+    text: string;
+  } | null>(null);
 
   const pushStatusQuery = useQuery({
     queryKey: ['push-status'],
@@ -43,13 +152,25 @@ export function SettingsView({ compactMode, onToggleCompactMode }: SettingsViewP
   useEffect(() => {
     setCaps(detectPushCapabilities());
     getExistingPushSubscription()
-      .then((sub) => setActiveEndpoint(sub?.endpoint ?? null))
+      .then(async (sub) => {
+        if (!sub) {
+          setActiveEndpoint(null);
+          return;
+        }
+        setActiveEndpoint(sub.endpoint);
+        // Asegurar sincronización con D1 si la base local o remota fue recreada
+        await subscribeWebPush(sub.toJSON()).catch(() => undefined);
+        void queryClient.invalidateQueries({ queryKey: ['push-status'] });
+      })
       .catch(() => setActiveEndpoint(null));
-  }, []);
+  }, [queryClient]);
 
   async function handleEnablePush() {
     if (!pushStatusQuery.data?.public_key) {
-      setFeedback({ type: 'err', text: 'El servidor no tiene configuradas las llaves VAPID aún.' });
+      setFeedback({
+        type: 'err',
+        text: 'El servidor no tiene configuradas las llaves VAPID aún.',
+      });
       return;
     }
 
@@ -88,7 +209,10 @@ export function SettingsView({ compactMode, onToggleCompactMode }: SettingsViewP
         await unsubscribeWebPush(endpoint);
       }
       setActiveEndpoint(null);
-      setFeedback({ type: 'ok', text: 'Suscripción eliminada de este dispositivo.' });
+      setFeedback({
+        type: 'ok',
+        text: 'Suscripción eliminada de este dispositivo.',
+      });
       void queryClient.invalidateQueries({ queryKey: ['push-status'] });
     } catch (err: unknown) {
       setFeedback({
@@ -104,16 +228,53 @@ export function SettingsView({ compactMode, onToggleCompactMode }: SettingsViewP
     setBusy(true);
     setFeedback(null);
     try {
-      const res = await sendTestPush(activeEndpoint ?? undefined);
-      setFeedback({
-        type: 'ok',
-        text: `Prueba enviada (${res.sent} entregadas, ${res.purged} expiradas purgadas, ${res.failed} fallidas).`,
-      });
+      let res = await sendTestPush(activeEndpoint ?? undefined);
+
+      // Si D1 no tenía registrada esta suscripción (ej. cambio/reinicio de BD local), re-registrar y reintentar
+      if (res.sent === 0 && res.purged === 0 && res.failed === 0) {
+        const existing = await getExistingPushSubscription();
+        if (existing) {
+          await subscribeWebPush(existing.toJSON());
+          setActiveEndpoint(existing.endpoint);
+          res = await sendTestPush(existing.endpoint);
+        }
+      }
+
+      if (res.sent > 0) {
+        setFeedback({
+          type: 'ok',
+          text: `Prueba enviada (${res.sent} entregadas, ${res.purged} expiradas purgadas, ${res.failed} fallidas).`,
+        });
+      } else if (res.purged > 0) {
+        const existing = await getExistingPushSubscription();
+        if (existing) {
+          await existing.unsubscribe().catch(() => undefined);
+        }
+        setActiveEndpoint(null);
+        setFeedback({
+          type: 'err',
+          text: 'La suscripción del navegador había expirado (410/404) y fue purgada. Pulsa "Activar notificaciones" nuevamente.',
+        });
+      } else if (res.failed > 0) {
+        setFeedback({
+          type: 'err',
+          text: `No se pudo entregar al servicio Push (${res.failed} fallidas). Pulsa Desactivar y vuelve a activar las notificaciones.`,
+        });
+      } else {
+        setFeedback({
+          type: 'err',
+          text: 'No se encontró ninguna suscripción registrada en D1 para este dispositivo. Pulsa Desactivar y vuelve a activarla.',
+        });
+      }
+
       void queryClient.invalidateQueries({ queryKey: ['push-status'] });
     } catch (err: unknown) {
       setFeedback({
         type: 'err',
-        text: err instanceof Error ? err.message : 'Error enviando notificación de prueba.',
+        text:
+          err instanceof Error
+            ? err.message
+            : 'Error enviando notificación de prueba.',
       });
     } finally {
       setBusy(false);
@@ -124,150 +285,166 @@ export function SettingsView({ compactMode, onToggleCompactMode }: SettingsViewP
   const serverConfigured = pushStatusQuery.data?.configured ?? false;
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      {/* Web Push Section */}
-      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-indigo-400" />
+    <div className={styles.page}>
+      {/* Web Push */}
+      <Card className={styles.card}>
+        <div className={styles.cardHeaderRow}>
+          <div className={styles.cardTitleGroup}>
+            <Subtitle2>
               Notificaciones Web Push (Canal Secundario)
-            </h2>
-            <p className="text-xs text-slate-400">
+            </Subtitle2>
+            <Caption1 className={styles.muted}>
               Recibe alertas agregadas directamente en este navegador o PWA instalada, además de Telegram.
-            </p>
+            </Caption1>
           </div>
-          <span
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium shrink-0 ${
-              activeEndpoint
-                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                : 'bg-slate-800 text-slate-400'
-            }`}
+          <Badge
+            appearance="tint"
+            color={activeEndpoint ? 'success' : 'subtle'}
+            size="medium"
           >
             {activeEndpoint ? 'Activo aquí' : 'Inactivo'}
-          </span>
+          </Badge>
         </div>
 
-        {/* iOS 16.4+ Standalone Guardrail (RNF-04) */}
         {iosNeedsInstall && (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs text-amber-200">
-            <div className="flex items-center gap-2 font-semibold text-amber-300">
-              <Smartphone className="w-4 h-4" />
-              iOS 16.4+ requiere instalar la PWA primero
-            </div>
-            <p>
-              Safari en iPhone/iPad solo habilita Web Push cuando abres la aplicación desde tu pantalla de inicio:
-            </p>
-            <ol className="list-decimal list-inside space-y-1 text-amber-100/90">
-              <li className="inline-flex items-center gap-1.5">
-                Toca el botón <strong>Compartir</strong> <Share className="w-3.5 h-3.5 inline" /> en Safari.
-              </li>
-              <li className="block">
-                Selecciona <strong>Agregar a inicio</strong> <PlusSquare className="w-3.5 h-3.5 inline" />.
-              </li>
-              <li>Abre BetterMoodle desde el ícono instalado y vuelve aquí para activar las alertas.</li>
-            </ol>
-          </div>
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              <MessageBarTitle className={styles.headingWithIcon}>
+                <Phone20Regular />
+                iOS 16.4+ requiere instalar la PWA primero
+              </MessageBarTitle>
+              <div>
+                Safari en iPhone/iPad solo habilita Web Push cuando abres la aplicación desde tu pantalla de inicio:
+              </div>
+              <ol className={styles.iosSteps}>
+                <li>
+                  <span className={styles.iosInline}>
+                    Toca <strong>Compartir</strong> <ShareIos20Regular /> en Safari.
+                  </span>
+                </li>
+                <li>
+                  <span className={styles.iosInline}>
+                    Selecciona <strong>Agregar a inicio</strong> <SquareAdd20Regular />.
+                  </span>
+                </li>
+                <li>
+                  Abre BetterMoodle desde el ícono instalado y vuelve aquí para activar las alertas.
+                </li>
+              </ol>
+            </MessageBarBody>
+          </MessageBar>
         )}
 
         {!caps.supported && !iosNeedsInstall && (
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-            Este navegador o contexto no soporta Web Push (`PushManager` / Service Worker).
-          </div>
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              Este navegador o contexto no soporta Web Push (`PushManager` / Service Worker).
+            </MessageBarBody>
+          </MessageBar>
         )}
 
         {feedback && (
-          <div
-            className={`p-3 rounded-lg border text-xs ${
-              feedback.type === 'ok'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-            }`}
-          >
-            {feedback.text}
-          </div>
+          <MessageBar intent={feedback.type === 'ok' ? 'success' : 'error'}>
+            <MessageBarBody>{feedback.text}</MessageBarBody>
+          </MessageBar>
         )}
 
-        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+        <div className={styles.actionsRow}>
           {!activeEndpoint ? (
-            <button
-              type="button"
+            <Button
+              appearance="primary"
               disabled={busy || !caps.supported || iosNeedsInstall || !serverConfigured}
+              icon={<Alert20Regular />}
               onClick={handleEnablePush}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold transition"
             >
-              <Bell className="w-3.5 h-3.5" />
               Activar notificaciones en este dispositivo
-            </button>
+            </Button>
           ) : (
             <>
-              <button
-                type="button"
+              <Button
+                appearance="primary"
                 disabled={busy}
+                icon={<Send20Regular />}
                 onClick={handleTestPush}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold transition"
               >
-                <Send className="w-3.5 h-3.5" />
                 Enviar prueba Push
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                appearance="secondary"
                 disabled={busy}
+                icon={<AlertOff20Regular />}
                 onClick={handleDisablePush}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 text-xs font-semibold transition"
               >
-                <BellOff className="w-3.5 h-3.5" />
                 Desactivar
-              </button>
+              </Button>
             </>
           )}
         </div>
 
-        <p className="text-[11px] text-slate-500">
+        <Caption1 className={styles.muted}>
           Dispositivos suscritos en D1: {pushStatusQuery.data?.subscription_count ?? 0} · Estado servidor:{' '}
           {serverConfigured ? 'Llaves VAPID listas' : 'Sin llaves VAPID'}
-        </p>
-      </section>
+        </Caption1>
+      </Card>
 
       {/* Preferencias Locales */}
-      <section className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <h2 className="text-base font-semibold text-slate-100">Preferencias de Interfaz</h2>
+      <Card className={styles.card}>
+        <Subtitle2>Preferencias de Interfaz</Subtitle2>
 
-        <label className="flex items-center justify-between gap-4 cursor-pointer">
-          <div>
-            <p className="text-sm font-medium text-slate-200">Modo compacto</p>
-            <p className="text-xs text-slate-400">
+        <div className={styles.prefRow}>
+          <div className={styles.prefText}>
+            <Body1Strong>Modo compacto</Body1Strong>
+            <Caption1 className={styles.muted}>
               Reduce el espaciado en listas para mostrar más tareas en pantalla.
-            </p>
+            </Caption1>
           </div>
-          <input
-            type="checkbox"
+          <Switch
             checked={compactMode}
-            onChange={onToggleCompactMode}
-            className="w-4 h-4 accent-indigo-500"
+            onChange={() => onToggleCompactMode()}
+            aria-label="Modo compacto"
           />
-        </label>
-      </section>
+        </div>
+
+        <div className={styles.themeBlock}>
+          <Body1Strong>Apariencia (Fluent 2)</Body1Strong>
+          <Caption1 className={styles.muted}>
+            Por defecto sigue el tema de tu dispositivo.
+          </Caption1>
+          <RadioGroup
+            layout="horizontal"
+            value={themeMode}
+            onChange={(_e, data) => setThemeMode(data.value as ThemeMode)}
+            aria-label="Tema de la aplicación"
+          >
+            <Radio value="system" label="Sistema" />
+            <Radio value="light" label="Claro" />
+            <Radio value="dark" label="Oscuro" />
+          </RadioGroup>
+        </div>
+      </Card>
 
       {/* Arquitectura & Enlace Institucional */}
-      <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-2 text-xs text-slate-400">
-        <div className="flex items-center gap-2 text-slate-200 font-semibold">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          Modo Híbrido Activo (Lectura D1 + Deep-Links)
+      <Card className={styles.infoCard} appearance="filled-alternative">
+        <div className={styles.headingWithIcon}>
+          <CheckmarkCircle20Regular
+            style={{ color: tokens.colorPaletteGreenForeground1, flexShrink: 0 }}
+          />
+          <Body1Strong>Modo Híbrido Activo (Lectura D1 + Deep-Links)</Body1Strong>
         </div>
-        <p>
+        <Body1 className={styles.muted}>
           Todas las vistas leen desde Cloudflare D1 sin tocar Moodle directamente. Entregas y exámenes se abren en la plataforma oficial del ITL.
-        </p>
-        <a
-          href="https://catedig.itlalaguna.edu.mx"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 pt-1"
-        >
-          Ir a catedig.itlalaguna.edu.mx <ExternalLink className="w-3 h-3" />
-        </a>
-      </section>
+        </Body1>
+        <div>
+          <Link
+            href="https://catedig.itlalaguna.edu.mx"
+            target="_blank"
+            rel="noreferrer"
+            inline
+          >
+            Ir a catedig.itlalaguna.edu.mx <Open16Regular style={{ verticalAlign: 'middle' }} />
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 }

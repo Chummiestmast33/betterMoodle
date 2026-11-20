@@ -1,5 +1,40 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Avatar,
+  Badge,
+  Body1Strong,
+  Button,
+  Caption1,
+  Menu,
+  MenuItem,
+  MenuList,
+  MenuPopover,
+  MenuTrigger,
+  MessageBar,
+  MessageBarActions,
+  MessageBarBody,
+  Tab,
+  TabList,
+  makeStyles,
+  mergeClasses,
+  shorthands,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  ArrowSync20Regular,
+  BookOpen20Filled,
+  BookOpen20Regular,
+  CheckboxChecked20Filled,
+  CheckboxChecked20Regular,
+  HeartPulse20Filled,
+  HeartPulse20Regular,
+  Home20Filled,
+  Home20Regular,
+  Navigation20Regular,
+  Settings20Filled,
+  Settings20Regular,
+} from '@fluentui/react-icons';
 import { fetchDashboard, fetchHealth, fetchItems } from './lib/api';
 import { CourseDetailView } from './views/CourseDetailView';
 import { HealthView } from './views/HealthView';
@@ -42,20 +77,188 @@ function readCompactPreference(): boolean {
   }
 }
 
+const useStyles = makeStyles({
+  root: {
+    minHeight: '100vh',
+    overflowX: 'clip',
+    backgroundColor: tokens.colorNeutralBackground2,
+    color: tokens.colorNeutralForeground1,
+  },
+  header: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 30,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+    boxShadow: tokens.shadow2,
+  },
+  headerInner: {
+    maxWidth: '1152px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+  },
+  brandBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flexShrink: 0,
+    backgroundColor: 'transparent',
+    ...shorthands.border('none'),
+    padding: 0,
+    cursor: 'pointer',
+    textAlign: 'left',
+    color: 'inherit',
+  },
+  brandText: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+  },
+  brandSubtitle: {
+    color: tokens.colorNeutralForeground3,
+    whiteSpace: 'nowrap',
+  },
+  desktopNav: {
+    display: 'none',
+    '@media (min-width: 1024px)': {
+      display: 'flex',
+      alignItems: 'center',
+      minWidth: 0,
+    },
+  },
+  tabletHamburgerNav: {
+    display: 'none',
+    '@media (min-width: 768px) and (max-width: 1023px)': {
+      display: 'flex',
+      alignItems: 'center',
+    },
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+  },
+  statusBadge: {
+    display: 'none',
+    '@media (min-width: 640px)': {
+      display: 'inline-flex',
+    },
+  },
+  main: {
+    maxWidth: '1152px',
+    width: '100%',
+    minWidth: 0,
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    paddingTop: '24px',
+    paddingBottom: '92px',
+    '@media (min-width: 768px)': {
+      paddingBottom: '40px',
+    },
+  },
+  mainCompact: {
+    paddingTop: '16px',
+  },
+  errorBanner: {
+    marginBottom: '16px',
+  },
+  mobileNav: {
+    position: 'fixed',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, 1fr)',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderTopWidth: '1px',
+    borderTopStyle: 'solid',
+    borderTopColor: tokens.colorNeutralStroke2,
+    boxShadow: tokens.shadow8,
+    paddingBottom: 'max(6px, env(safe-area-inset-bottom))',
+    '@media (min-width: 768px)': {
+      display: 'none',
+    },
+  },
+  mobileNavBtn: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '2px',
+    paddingTop: '8px',
+    paddingBottom: '6px',
+    backgroundColor: 'transparent',
+    ...shorthands.border('none'),
+    cursor: 'pointer',
+    color: tokens.colorNeutralForeground3,
+    fontFamily: 'inherit',
+  },
+  mobileNavBtnActive: {
+    color: tokens.colorBrandForeground1,
+    fontWeight: tokens.fontWeightSemibold,
+  },
+  mobileNavLabel: {
+    fontSize: '11px',
+    lineHeight: '14px',
+  },
+});
+
 const NAV_ITEMS: Array<{
   id: AppView;
   label: string;
   shortLabel: string;
-  icon: string;
+  renderIcon: (active: boolean) => React.ReactElement;
 }> = [
-  { id: 'overview', label: 'Resumen', shortLabel: 'Resumen', icon: '◈' },
-  { id: 'tasks', label: 'Tareas', shortLabel: 'Tareas', icon: '☑' },
-  { id: 'course', label: 'Materias', shortLabel: 'Materias', icon: '☰' },
-  { id: 'health', label: 'Salud', shortLabel: 'Salud', icon: '♡' },
-  { id: 'settings', label: 'Configuración', shortLabel: 'Config', icon: '⚙' },
+  {
+    id: 'overview',
+    label: 'Resumen',
+    shortLabel: 'Resumen',
+    renderIcon: (active) => (active ? <Home20Filled /> : <Home20Regular />),
+  },
+  {
+    id: 'tasks',
+    label: 'Tareas',
+    shortLabel: 'Tareas',
+    renderIcon: (active) =>
+      active ? <CheckboxChecked20Filled /> : <CheckboxChecked20Regular />,
+  },
+  {
+    id: 'course',
+    label: 'Materias',
+    shortLabel: 'Materias',
+    renderIcon: (active) => (active ? <BookOpen20Filled /> : <BookOpen20Regular />),
+  },
+  {
+    id: 'health',
+    label: 'Salud',
+    shortLabel: 'Salud',
+    renderIcon: (active) =>
+      active ? <HeartPulse20Filled /> : <HeartPulse20Regular />,
+  },
+  {
+    id: 'settings',
+    label: 'Configuración',
+    shortLabel: 'Config',
+    renderIcon: (active) => (active ? <Settings20Filled /> : <Settings20Regular />),
+  },
 ];
 
 export function App() {
+  const styles = useStyles();
   const queryClient = useQueryClient();
   const initial = useMemo(() => parseInitialView(), []);
   const [activeView, setActiveView] = useState<AppView>(initial.view);
@@ -139,112 +342,123 @@ export function App() {
   const courses = dashboard?.courses ?? [];
 
   return (
-    <div
-      className={`min-h-screen overflow-x-clip bg-slate-950 text-slate-100 ${
-        compactMode ? 'text-[13px] leading-snug' : 'text-sm'
-      }`}
-    >
+    <div className={styles.root}>
       {/* Top navigation bar */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
           <button
             type="button"
             onClick={() => navigate('overview')}
-            className="flex items-center gap-2.5 text-left"
+            className={styles.brandBtn}
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15 text-base font-bold text-sky-400 ring-1 ring-sky-500/30">
-              BM
-            </span>
-            <div>
-              <span className="block text-sm font-semibold tracking-tight text-white">
-                BetterMoodle
-              </span>
-              <span className="block text-[11px] text-slate-400">
+            <Avatar
+              name="Better Moodle"
+              initials="BM"
+              color="brand"
+              shape="square"
+              size={36}
+            />
+            <div className={styles.brandText}>
+              <Body1Strong>BetterMoodle</Body1Strong>
+              <Caption1 className={styles.brandSubtitle}>
                 ITL · CATEDIG Monitor
-              </span>
+              </Caption1>
             </div>
           </button>
 
-          {/* Desktop nav */}
-          <nav
-            aria-label="Navegación principal"
-            className="hidden items-center gap-1 md:flex"
-          >
-            {NAV_ITEMS.map((item) => {
-              const active = activeView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => navigate(item.id)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                    active
-                      ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/30'
-                      : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
-                  }`}
-                >
+          {/* Desktop nav (>= 1024px) */}
+          <nav aria-label="Navegación principal" className={styles.desktopNav}>
+            <TabList
+              selectedValue={activeView}
+              onTabSelect={(_e, data) => navigate(data.value as AppView)}
+              size="medium"
+            >
+              {NAV_ITEMS.map((item) => (
+                <Tab key={item.id} value={item.id} icon={item.renderIcon(activeView === item.id)}>
                   {item.label}
-                </button>
-              );
-            })}
+                </Tab>
+              ))}
+            </TabList>
           </nav>
 
-          <div className="flex items-center gap-2">
+          {/* Tablet / half-screen hamburger menu (768px - 1023px) */}
+          <div className={styles.tabletHamburgerNav}>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Button
+                  appearance="subtle"
+                  icon={<Navigation20Regular />}
+                  aria-label="Abrir menú de navegación"
+                >
+                  {NAV_ITEMS.find((i) => i.id === activeView)?.label ?? 'Menú'}
+                </Button>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  {NAV_ITEMS.map((item) => (
+                    <MenuItem
+                      key={item.id}
+                      icon={item.renderIcon(activeView === item.id)}
+                      onClick={() => navigate(item.id)}
+                    >
+                      {item.label}
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          </div>
+
+          <div className={styles.headerActions}>
             {health && (
-              <span
-                className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium sm:inline-flex ${
+              <Badge
+                className={styles.statusBadge}
+                appearance="tint"
+                shape="rounded"
+                color={
                   health.status === 'ok'
-                    ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'
+                    ? 'success'
                     : health.status === 'circuit_open'
-                    ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/30'
-                    : 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30'
-                }`}
+                    ? 'danger'
+                    : 'warning'
+                }
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    health.status === 'ok'
-                      ? 'bg-emerald-400'
-                      : health.status === 'circuit_open'
-                      ? 'bg-rose-400'
-                      : 'bg-amber-400'
-                  }`}
-                />
                 {health.status === 'ok'
                   ? 'Al día'
                   : health.status === 'circuit_open'
                   ? 'Circuit Breaker'
                   : 'Caché degradada'}
-              </span>
+              </Badge>
             )}
-            <button
-              type="button"
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<ArrowSync20Regular />}
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="rounded-lg border border-slate-700/80 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-800 disabled:opacity-50"
             >
               {isRefreshing ? 'Cargando...' : 'Recargar'}
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main content */}
       <main
-        className={`mx-auto w-full max-w-6xl min-w-0 px-4 pb-24 md:pb-10 ${
-          compactMode ? 'pt-4' : 'pt-6'
-        }`}
+        className={mergeClasses(
+          styles.main,
+          compactMode && styles.mainCompact,
+        )}
       >
         {error && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
-            <span>{error}</span>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              className="shrink-0 rounded-md bg-rose-500/20 px-2.5 py-1 font-medium text-rose-100 hover:bg-rose-500/30"
-            >
-              Reintentar
-            </button>
-          </div>
+          <MessageBar intent="error" className={styles.errorBanner}>
+            <MessageBarBody>{error}</MessageBarBody>
+            <MessageBarActions>
+              <Button size="small" onClick={handleRefresh}>
+                Reintentar
+              </Button>
+            </MessageBarActions>
+          </MessageBar>
         )}
 
         {activeView === 'overview' && (
@@ -252,6 +466,7 @@ export function App() {
             dashboard={dashboard}
             allAssignments={assignments}
             isLoading={isLoading}
+            compactMode={compactMode}
             onSelectCourse={(courseId) => navigate('course', courseId)}
             onNavigateTasks={() => navigate('tasks')}
           />
@@ -262,6 +477,7 @@ export function App() {
             assignments={assignments}
             courses={courses}
             isLoading={isLoading}
+            compactMode={compactMode}
           />
         )}
 
@@ -270,13 +486,18 @@ export function App() {
             courseId={selectedCourseId}
             courses={courses}
             items={items}
+            compactMode={compactMode}
             onSelectCourse={(courseId) => navigate('course', courseId)}
             onBack={() => navigate('course', null)}
           />
         )}
 
         {activeView === 'health' && (
-          <HealthView health={health} isLoading={isLoading} />
+          <HealthView
+            health={health}
+            isLoading={isLoading}
+            compactMode={compactMode}
+          />
         )}
 
         {activeView === 'settings' && (
@@ -288,30 +509,24 @@ export function App() {
       </main>
 
       {/* Mobile bottom navigation */}
-      <nav
-        aria-label="Navegación móvil"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-950/95 backdrop-blur md:hidden"
-      >
-        <div className="grid grid-cols-5">
-          {NAV_ITEMS.map((item) => {
-            const active = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigate(item.id)}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition ${
-                  active ? 'text-sky-400' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span className="text-base leading-none" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.shortLabel}</span>
-              </button>
-            );
-          })}
-        </div>
+      <nav aria-label="Navegación móvil" className={styles.mobileNav}>
+        {NAV_ITEMS.map((item) => {
+          const active = activeView === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => navigate(item.id)}
+              className={mergeClasses(
+                styles.mobileNavBtn,
+                active && styles.mobileNavBtnActive,
+              )}
+            >
+              <span aria-hidden="true">{item.renderIcon(active)}</span>
+              <span className={styles.mobileNavLabel}>{item.shortLabel}</span>
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

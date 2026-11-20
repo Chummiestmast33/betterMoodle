@@ -1,18 +1,34 @@
 import {
-  BookOpen,
-  Clock,
-  Award,
-  Megaphone,
-  ExternalLink,
-  ChevronRight,
-  CheckCircle2,
-  AlertTriangle,
-} from 'lucide-react';
+  Badge,
+  Body1,
+  Body1Strong,
+  Button,
+  Caption1,
+  Card,
+  ProgressBar,
+  Skeleton,
+  SkeletonItem,
+  Subtitle2,
+  Title2,
+  makeStyles,
+  mergeClasses,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  BookOpen20Regular,
+  CheckboxChecked20Regular,
+  ChevronRight20Regular,
+  Clock20Regular,
+  Megaphone20Regular,
+  Open16Regular,
+  Ribbon20Regular,
+  Warning20Regular,
+} from '@fluentui/react-icons';
 import type { DashboardResponse, SyncedItem } from '@better-moodle/shared';
 import {
   formatCountdown,
-  formatUnixDate,
   formatRelativeTime,
+  formatUnixDate,
   getMoodleDeepLink,
 } from '../lib/format';
 
@@ -20,24 +36,223 @@ interface OverviewViewProps {
   dashboard: DashboardResponse | undefined;
   allAssignments: SyncedItem[];
   isLoading: boolean;
+  compactMode?: boolean;
   onSelectCourse: (courseId: number) => void;
   onNavigateTasks: () => void;
 }
+
+const useStyles = makeStyles({
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+    minWidth: 0,
+  },
+  pageCompact: {
+    gap: '14px',
+  },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '12px',
+    '@media (min-width: 640px)': {
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    },
+  },
+  kpiCard: {
+    padding: '16px',
+    gap: '4px',
+    minWidth: 0,
+  },
+  kpiTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    color: tokens.colorNeutralForeground3,
+  },
+  kpiSub: {
+    color: tokens.colorNeutralForeground3,
+  },
+  kpiUrgentValue: {
+    color: tokens.colorPaletteDarkOrangeForeground1,
+  },
+  mainGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '24px',
+    '@media (min-width: 1024px)': {
+      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)',
+    },
+  },
+  section: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    minWidth: 0,
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
+  sectionTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  rightColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+    minWidth: 0,
+  },
+  subGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '16px',
+    '@media (min-width: 640px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+  stack: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    minWidth: 0,
+  },
+  courseCard: {
+    padding: '14px',
+    gap: '10px',
+    minWidth: 0,
+    width: '100%',
+    textAlign: 'left',
+  },
+  courseRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '10px',
+    minWidth: 0,
+  },
+  courseInfo: {
+    minWidth: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  courseTitle: {
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+  },
+  courseShort: {
+    color: tokens.colorNeutralForeground3,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  progressRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    color: tokens.colorNeutralForeground3,
+    marginBottom: '4px',
+  },
+  itemCard: {
+    padding: '14px',
+    minWidth: 0,
+  },
+  itemRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    minWidth: 0,
+  },
+  itemMain: {
+    minWidth: 0,
+    flexGrow: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  badgeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '6px',
+    minWidth: 0,
+  },
+  truncateBadge: {
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  truncateText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  mutedText: {
+    color: tokens.colorNeutralForeground3,
+  },
+  gradeCard: {
+    padding: '12px',
+    minWidth: 0,
+  },
+  announcementCard: {
+    padding: '12px',
+    minWidth: 0,
+    textDecorationLine: 'none',
+    color: 'inherit',
+  },
+  announcementMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    marginTop: '4px',
+    color: tokens.colorNeutralForeground3,
+  },
+  emptyCard: {
+    padding: '20px',
+    color: tokens.colorNeutralForeground3,
+  },
+  skeletonGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '16px',
+    '@media (min-width: 768px)': {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    },
+  },
+});
 
 export function OverviewView({
   dashboard,
   allAssignments,
   isLoading,
+  compactMode,
   onSelectCourse,
   onNavigateTasks,
 }: OverviewViewProps) {
+  const styles = useStyles();
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-36 bg-slate-900/80 border border-slate-800 rounded-xl" />
-        ))}
-      </div>
+      <Skeleton aria-label="Cargando resumen">
+        <div className={styles.skeletonGrid}>
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className={styles.kpiCard}>
+              <SkeletonItem size={16} style={{ width: '40%' }} />
+              <SkeletonItem size={28} style={{ width: '25%' }} />
+              <SkeletonItem size={12} style={{ width: '65%' }} />
+            </Card>
+          ))}
+        </div>
+      </Skeleton>
     );
   }
 
@@ -45,251 +260,283 @@ export function OverviewView({
   const courses = dashboard?.courses ?? [];
   const upcoming = dashboard?.upcoming_assignments ?? [];
   const pendingCount = allAssignments.filter(
-    (a) => a.submission_status !== 'submitted' && a.submission_status !== 'graded' && (!a.due_date || a.due_date >= nowSec)
+    (a) =>
+      a.submission_status !== 'submitted' &&
+      a.submission_status !== 'graded' &&
+      (!a.due_date || a.due_date >= nowSec),
   ).length;
-  const urgentCount = upcoming.filter((a) => a.due_date && a.due_date - nowSec <= 48 * 3600).length;
-  const announcements = (dashboard?.recent_activity ?? []).filter((a) => a.item_type === 'announcement');
-  const recentGrades = (dashboard?.current_grades ?? []).filter((g) => g.grade_num !== null).slice(0, 5);
+  const urgentCount = upcoming.filter(
+    (a) => a.due_date && a.due_date - nowSec <= 48 * 3600,
+  ).length;
+  const announcements = (dashboard?.recent_activity ?? []).filter(
+    (a) => a.item_type === 'announcement',
+  );
+  const recentGrades = (dashboard?.current_grades ?? [])
+    .filter((g) => g.grade_num !== null)
+    .slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className={mergeClasses(styles.page, compactMode && styles.pageCompact)}>
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-            <span>Materias</span>
-            <BookOpen className="w-4 h-4 text-indigo-400" />
+      <div className={styles.kpiGrid}>
+        <Card className={styles.kpiCard} appearance="filled-alternative">
+          <div className={styles.kpiTop}>
+            <Caption1>Materias</Caption1>
+            <BookOpen20Regular />
           </div>
-          <p className="text-2xl font-bold text-slate-100">{courses.length}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Sincronizadas en D1</p>
-        </div>
+          <Title2>{courses.length}</Title2>
+          <Caption1 className={styles.kpiSub}>Sincronizadas en D1</Caption1>
+        </Card>
 
-        <button
-          type="button"
+        <Card
+          className={styles.kpiCard}
+          appearance="filled-alternative"
           onClick={onNavigateTasks}
-          className="text-left bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-xl p-4 transition"
         >
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-            <span>Pendientes</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <div className={styles.kpiTop}>
+            <Caption1>Pendientes</Caption1>
+            <CheckboxChecked20Regular />
           </div>
-          <p className="text-2xl font-bold text-slate-100">{pendingCount}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Ver lista de tareas →</p>
-        </button>
+          <Title2>{pendingCount}</Title2>
+          <Caption1 className={styles.kpiSub}>Ver lista de tareas →</Caption1>
+        </Card>
 
-        <button
-          type="button"
+        <Card
+          className={styles.kpiCard}
+          appearance="filled-alternative"
           onClick={onNavigateTasks}
-          className="text-left bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-xl p-4 transition"
         >
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-            <span>Urgentes (48h)</span>
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
+          <div className={styles.kpiTop}>
+            <Caption1>Urgentes (48h)</Caption1>
+            <Warning20Regular />
           </div>
-          <p className="text-2xl font-bold text-amber-300">{urgentCount}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Por vencer pronto</p>
-        </button>
+          <Title2 className={urgentCount > 0 ? styles.kpiUrgentValue : undefined}>
+            {urgentCount}
+          </Title2>
+          <Caption1 className={styles.kpiSub}>Por vencer pronto</Caption1>
+        </Card>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-            <span>Calificaciones</span>
-            <Award className="w-4 h-4 text-cyan-400" />
+        <Card className={styles.kpiCard} appearance="filled-alternative">
+          <div className={styles.kpiTop}>
+            <Caption1>Calificaciones</Caption1>
+            <Ribbon20Regular />
           </div>
-          <p className="text-2xl font-bold text-slate-100">{recentGrades.length}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Evaluadas recientes</p>
-        </div>
+          <Title2>{recentGrades.length}</Title2>
+          <Caption1 className={styles.kpiSub}>Evaluadas recientes</Caption1>
+        </Card>
       </div>
 
-      {/* Main 2-column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Materias */}
-        <section className="min-w-0 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-400" />
-            Mis Materias
-          </h2>
+      {/* Main 2-column layout */}
+      <div className={styles.mainGrid}>
+        {/* Mis Materias */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <Subtitle2 className={styles.sectionTitle}>
+              <BookOpen20Regular />
+              Mis Materias
+            </Subtitle2>
+          </div>
+
           {courses.length === 0 ? (
-            <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-              No hay materias sincronizadas todavía.
-            </div>
+            <Card className={styles.emptyCard} appearance="outline">
+              <Body1>No hay materias sincronizadas todavía.</Body1>
+            </Card>
           ) : (
-            <div className="space-y-2.5">
+            <div className={styles.stack}>
               {courses.map((course) => (
-                <button
+                <Card
                   key={course.id}
-                  type="button"
+                  className={styles.courseCard}
                   onClick={() => onSelectCourse(course.id)}
-                  className="w-full min-w-0 overflow-hidden text-left p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 transition group"
                 >
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-100 break-words line-clamp-2 group-hover:text-indigo-300 transition">
+                  <div className={styles.courseRow}>
+                    <div className={styles.courseInfo}>
+                      <Body1Strong className={styles.courseTitle}>
                         {course.fullname}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5 truncate">{course.shortname}</p>
+                      </Body1Strong>
+                      <Caption1 className={styles.courseShort}>
+                        {course.shortname}
+                      </Caption1>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 shrink-0 mt-0.5" />
+                    <ChevronRight20Regular />
                   </div>
                   {typeof course.progress === 'number' && (
-                    <div className="mt-2.5">
-                      <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                        <span>Progreso</span>
-                        <span>{Math.round(course.progress)}%</span>
+                    <div>
+                      <div className={styles.progressRow}>
+                        <Caption1>Progreso</Caption1>
+                        <Caption1>{Math.round(course.progress)}%</Caption1>
                       </div>
-                      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 rounded-full"
-                          style={{ width: `${Math.min(100, Math.max(0, course.progress))}%` }}
-                        />
-                      </div>
+                      <ProgressBar
+                        value={Math.min(100, Math.max(0, course.progress)) / 100}
+                        thickness="medium"
+                      />
                     </div>
                   )}
-                </button>
+                </Card>
               ))}
             </div>
           )}
         </section>
 
-        {/* Right: Próximos Vencimientos + Avisos + Calificaciones */}
-        <div className="lg:col-span-2 min-w-0 space-y-6">
-          {/* Próximas entregas */}
-          <section className="min-w-0 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
+        {/* Próximos Vencimientos + Calificaciones + Avisos */}
+        <div className={styles.rightColumn}>
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <Subtitle2 className={styles.sectionTitle}>
+                <Clock20Regular />
                 Próximos Vencimientos
-              </h2>
-              <button
-                type="button"
-                onClick={onNavigateTasks}
-                className="text-xs text-indigo-400 hover:text-indigo-300"
-              >
+              </Subtitle2>
+              <Button appearance="subtle" size="small" onClick={onNavigateTasks}>
                 Ver todas
-              </button>
+              </Button>
             </div>
 
             {upcoming.length === 0 ? (
-              <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                ¡Todo despejado! No tienes entregas próximas pendientes.
-              </div>
+              <Card className={styles.emptyCard} appearance="outline">
+                <Body1>¡Todo despejado! No tienes entregas próximas pendientes.</Body1>
+              </Card>
             ) : (
-              <div className="space-y-2">
+              <div className={styles.stack}>
                 {upcoming.slice(0, 6).map((task) => {
-                  const isUrgent = task.due_date && task.due_date - nowSec <= 48 * 3600;
+                  const isUrgent =
+                    Boolean(task.due_date) && (task.due_date as number) - nowSec <= 48 * 3600;
                   const isSubmitted =
-                    task.submission_status === 'submitted' || task.submission_status === 'graded';
+                    task.submission_status === 'submitted' ||
+                    task.submission_status === 'graded';
+
                   return (
-                    <div
-                      key={task.item_key}
-                      className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3 overflow-hidden"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 max-w-full truncate">
-                            {task.course_name || `Curso #${task.course_id}`}
-                          </span>
-                          {isSubmitted ? (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">
-                              Entregada
-                            </span>
-                          ) : isUrgent ? (
-                            <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-300">
-                              {formatCountdown(task.due_date, nowSec)}
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-slate-400">
-                              {formatCountdown(task.due_date, nowSec)}
-                            </span>
-                          )}
+                    <Card key={task.item_key} className={styles.itemCard}>
+                      <div className={styles.itemRow}>
+                        <div className={styles.itemMain}>
+                          <div className={styles.badgeRow}>
+                            <Badge
+                              appearance="tint"
+                              color="subtle"
+                              className={styles.truncateBadge}
+                            >
+                              {task.course_name || `Curso #${task.course_id}`}
+                            </Badge>
+                            {isSubmitted ? (
+                              <Badge appearance="tint" color="success">
+                                Entregada
+                              </Badge>
+                            ) : isUrgent ? (
+                              <Badge appearance="tint" color="warning">
+                                {formatCountdown(task.due_date, nowSec)}
+                              </Badge>
+                            ) : (
+                              <Caption1 className={styles.mutedText}>
+                                {formatCountdown(task.due_date, nowSec)}
+                              </Caption1>
+                            )}
+                          </div>
+                          <Body1Strong className={styles.truncateText}>
+                            {task.title}
+                          </Body1Strong>
+                          <Caption1 className={styles.mutedText}>
+                            {formatUnixDate(task.due_date)}
+                          </Caption1>
                         </div>
-                        <p className="text-sm font-medium text-slate-100 mt-1 truncate">
-                          {task.title}
-                        </p>
-                        <p className="text-xs text-slate-400">{formatUnixDate(task.due_date)}</p>
+
+                        <Button
+                          as="a"
+                          appearance="secondary"
+                          size="small"
+                          href={getMoodleDeepLink({
+                            item_key: task.item_key,
+                            item_type: 'assignment',
+                            url: task.url,
+                            course_id: task.course_id,
+                          })}
+                          target="_blank"
+                          rel="noreferrer"
+                          icon={<Open16Regular />}
+                          iconPosition="after"
+                          style={{ flexShrink: 0 }}
+                        >
+                          Entregar
+                        </Button>
                       </div>
-                      <a
-                        href={getMoodleDeepLink({
-                          item_key: task.item_key,
-                          item_type: 'assignment',
-                          url: task.url,
-                          course_id: task.course_id,
-                        })}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-medium transition"
-                      >
-                        Entregar <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
             )}
           </section>
 
-          {/* Calificaciones y Avisos recientes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <section className="min-w-0 space-y-3">
-              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Award className="w-4 h-4 text-cyan-400" />
+          <div className={styles.subGrid}>
+            <section className={styles.section}>
+              <Subtitle2 className={styles.sectionTitle}>
+                <Ribbon20Regular />
                 Calificaciones Recientes
-              </h2>
+              </Subtitle2>
               {recentGrades.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                  Sin calificaciones registradas aún.
-                </div>
+                <Card className={styles.emptyCard} appearance="outline">
+                  <Caption1>Sin calificaciones registradas aún.</Caption1>
+                </Card>
               ) : (
-                <div className="space-y-2">
+                <div className={styles.stack}>
                   {recentGrades.map((g) => (
-                    <div
-                      key={g.item_key}
-                      className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 overflow-hidden"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-slate-200 truncate">{g.title}</p>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          {g.course_name || `Curso #${g.course_id}`}
-                        </p>
+                    <Card key={g.item_key} className={styles.gradeCard}>
+                      <div className={styles.itemRow}>
+                        <div className={styles.itemMain}>
+                          <Body1Strong className={styles.truncateText}>
+                            {g.title}
+                          </Body1Strong>
+                          <Caption1 className={mergeClasses(styles.truncateText, styles.mutedText)}>
+                            {g.course_name || `Curso #${g.course_id}`}
+                          </Caption1>
+                        </div>
+                        <Badge appearance="tint" color="informative" size="large">
+                          {g.grade_num}
+                        </Badge>
                       </div>
-                      <span className="shrink-0 text-sm font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-lg">
-                        {g.grade_num}
-                      </span>
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
             </section>
 
-            <section className="min-w-0 space-y-3">
-              <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-violet-400" />
+            <section className={styles.section}>
+              <Subtitle2 className={styles.sectionTitle}>
+                <Megaphone20Regular />
                 Últimos Avisos
-              </h2>
+              </Subtitle2>
               {announcements.length === 0 ? (
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                  Sin avisos en foros recientemente.
-                </div>
+                <Card className={styles.emptyCard} appearance="outline">
+                  <Caption1>Sin avisos en foros recientemente.</Caption1>
+                </Card>
               ) : (
-                <div className="space-y-2">
+                <div className={styles.stack}>
                   {announcements.slice(0, 5).map((ann) => (
-                    <a
+                    <Card
                       key={ann.item_key}
-                      href={getMoodleDeepLink({
-                        item_key: ann.item_key,
-                        item_type: 'announcement',
-                        url: ann.url,
-                        course_id: ann.course_id,
-                      })}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block min-w-0 overflow-hidden p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/40 transition"
+                      className={styles.announcementCard}
+                      onClick={() =>
+                        window.open(
+                          getMoodleDeepLink({
+                            item_key: ann.item_key,
+                            item_type: 'announcement',
+                            url: ann.url,
+                            course_id: ann.course_id,
+                          }),
+                          '_blank',
+                          'noopener,noreferrer',
+                        )
+                      }
                     >
-                      <p className="text-xs font-medium text-slate-200 truncate">{ann.title}</p>
-                      <div className="flex items-center justify-between gap-2 mt-1 text-[11px] text-slate-400">
-                        <span className="truncate min-w-0">{ann.course_name || `Curso #${ann.course_id}`}</span>
-                        <span className="shrink-0">{formatRelativeTime(ann.timemodified)}</span>
+                      <Body1Strong className={styles.truncateText}>
+                        {ann.title}
+                      </Body1Strong>
+                      <div className={styles.announcementMeta}>
+                        <Caption1 className={styles.truncateText}>
+                          {ann.course_name || `Curso #${ann.course_id}`}
+                        </Caption1>
+                        <Caption1 style={{ flexShrink: 0 }}>
+                          {formatRelativeTime(ann.timemodified)}
+                        </Caption1>
                       </div>
-                    </a>
+                    </Card>
                   ))}
                 </div>
               )}

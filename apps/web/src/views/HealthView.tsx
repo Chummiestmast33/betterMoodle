@@ -1,6 +1,35 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Activity, RefreshCw, CheckCircle2, AlertTriangle, ShieldAlert, Cpu } from 'lucide-react';
+import {
+  Badge,
+  Body1,
+  Body1Strong,
+  Button,
+  Caption1,
+  Card,
+  MessageBar,
+  MessageBarBody,
+  ProgressBar,
+  Spinner,
+  Subtitle2,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+  makeStyles,
+  shorthands,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  ArrowSync20Regular,
+  CheckmarkCircle16Regular,
+  DeveloperBoard20Regular,
+  HeartPulse20Regular,
+  ShieldError16Regular,
+  Warning16Regular,
+} from '@fluentui/react-icons';
 import type { EnhancedHealthResponse } from '@better-moodle/shared';
 import { triggerManualSync } from '../lib/api';
 import { formatRelativeTime, formatUnixDate } from '../lib/format';
@@ -8,11 +37,158 @@ import { formatRelativeTime, formatUnixDate } from '../lib/format';
 interface HealthViewProps {
   health: EnhancedHealthResponse | undefined;
   isLoading: boolean;
+  compactMode?: boolean;
 }
 
-export function HealthView({ health, isLoading }: HealthViewProps) {
+const useStyles = makeStyles({
+  page: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    minWidth: 0,
+  },
+  pageCompact: {
+    gap: '14px',
+  },
+  statusCard: {
+    padding: '18px',
+    minWidth: 0,
+  },
+  statusTop: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    '@media (min-width: 640px)': {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+  },
+  statusLeft: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    minWidth: 0,
+  },
+  badgeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  muted: {
+    color: tokens.colorNeutralForeground3,
+  },
+  budgetCard: {
+    padding: '18px',
+    gap: '12px',
+    minWidth: 0,
+  },
+  budgetTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  sectionTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  metricsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: '10px',
+    '@media (min-width: 640px)': {
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    },
+  },
+  metricTile: {
+    padding: '12px',
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  tableCard: {
+    padding: 0,
+    overflow: 'hidden',
+    minWidth: 0,
+  },
+  tableHeader: {
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    paddingTop: '12px',
+    paddingBottom: '12px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  desktopTableWrap: {
+    display: 'none',
+    overflowX: 'auto',
+    '@media (min-width: 640px)': {
+      display: 'block',
+    },
+  },
+  mobileRunsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    '@media (min-width: 640px)': {
+      display: 'none',
+    },
+  },
+  mobileRunRow: {
+    padding: '12px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    borderBottomWidth: '1px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: tokens.colorNeutralStroke2,
+  },
+  mobileRunTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+  },
+  mobileRunError: {
+    color: tokens.colorPaletteRedForeground1,
+    overflowWrap: 'anywhere',
+  },
+  errorCell: {
+    color: tokens.colorPaletteRedForeground1,
+    maxWidth: '240px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  loadingWrap: {
+    padding: '32px',
+    display: 'flex',
+    justifyContent: 'center',
+  },
+  emptyBody: {
+    padding: '24px',
+    textAlign: 'center',
+    color: tokens.colorNeutralForeground3,
+  },
+});
+
+export function HealthView({ health, isLoading, compactMode }: HealthViewProps) {
+  const styles = useStyles();
   const queryClient = useQueryClient();
-  const [syncMessage, setSyncMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [syncMessage, setSyncMessage] = useState<{
+    type: 'ok' | 'err';
+    text: string;
+  } | null>(null);
 
   const syncMutation = useMutation({
     mutationFn: triggerManualSync,
@@ -28,168 +204,231 @@ export function HealthView({ health, isLoading }: HealthViewProps) {
     },
   });
 
-  if (isLoading || !health) {
-    return <div className="p-8 text-center text-sm text-slate-400">Cargando telemetría de D1...</div>;
+  if (isLoading) {
+    return (
+      <div className={styles.loadingWrap}>
+        <Spinner label="Cargando telemetría de D1..." />
+      </div>
+    );
+  }
+
+  if (!health) {
+    return (
+      <Card className={styles.statusCard} appearance="outline">
+        <Body1>Telemetría de D1 no disponible en este momento.</Body1>
+      </Card>
+    );
   }
 
   const state = health.sync_state;
   const sub = health.subrequests;
-  const budgetPct = Math.min(100, Math.round((sub.last_used / sub.max_budget) * 100));
+  const budgetRatio = sub.max_budget > 0 ? Math.min(1, sub.last_used / sub.max_budget) : 0;
+  const budgetPct = Math.round(budgetRatio * 100);
 
   const statusConfig =
     health.status === 'ok'
-      ? { label: 'Operacional', icon: CheckCircle2, cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+      ? {
+          label: 'Operacional',
+          color: 'success' as const,
+          icon: <CheckmarkCircle16Regular />,
+        }
       : health.status === 'circuit_open'
-      ? { label: 'Circuit Breaker Abierto', icon: ShieldAlert, cls: 'bg-rose-500/15 text-rose-300 border-rose-500/30' }
-      : { label: 'Degradado', icon: AlertTriangle, cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' };
-
-  const StatusIcon = statusConfig.icon;
+      ? {
+          label: 'Circuit Breaker Abierto',
+          color: 'danger' as const,
+          icon: <ShieldError16Regular />,
+        }
+      : {
+          label: 'Degradado',
+          color: 'warning' as const,
+          icon: <Warning16Regular />,
+        };
 
   return (
-    <div className="space-y-6">
-      {/* Top Status & Manual Trigger */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2.5">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusConfig.cls}`}
-            >
-              <StatusIcon className="w-3.5 h-3.5" />
-              {statusConfig.label}
-            </span>
-            <span className="text-xs text-slate-400">
-              Último éxito: {formatRelativeTime(state?.last_success_at)}
-            </span>
+    <div className={compactMode ? styles.pageCompact : styles.page}>
+      <Card className={styles.statusCard}>
+        <div className={styles.statusTop}>
+          <div className={styles.statusLeft}>
+            <div className={styles.badgeRow}>
+              <Badge
+                appearance="tint"
+                color={statusConfig.color}
+                icon={statusConfig.icon}
+                size="large"
+              >
+                {statusConfig.label}
+              </Badge>
+              <Caption1 className={styles.muted}>
+                Último éxito: {formatRelativeTime(state?.last_success_at)}
+              </Caption1>
+            </div>
+            <Caption1 className={styles.muted}>
+              Fallos consecutivos: <strong>{state?.consecutive_failures ?? 0}</strong> ·
+              Tasa de error reciente: <strong>{Math.round(health.failure_rate * 100)}%</strong>
+            </Caption1>
           </div>
-          <p className="text-xs text-slate-400">
-            Fallos consecutivos: <strong className="text-slate-200">{state?.consecutive_failures ?? 0}</strong> ·
-            Tasa de error reciente: <strong className="text-slate-200">{Math.round(health.failure_rate * 100)}%</strong>
-          </p>
-        </div>
 
-        <button
-          type="button"
-          disabled={syncMutation.isPending}
-          onClick={() => {
-            setSyncMessage(null);
-            syncMutation.mutate();
-          }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar ahora'}
-        </button>
-      </div>
+          <Button
+            appearance="primary"
+            disabled={syncMutation.isPending}
+            icon={
+              syncMutation.isPending ? (
+                <Spinner size="tiny" />
+              ) : (
+                <ArrowSync20Regular />
+              )
+            }
+            onClick={() => {
+              setSyncMessage(null);
+              syncMutation.mutate();
+            }}
+            style={{ flexShrink: 0 }}
+          >
+            {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar ahora'}
+          </Button>
+        </div>
+      </Card>
 
       {syncMessage && (
-        <div
-          className={`p-3.5 rounded-xl border text-xs ${
-            syncMessage.type === 'ok'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-          }`}
-        >
-          {syncMessage.text}
-        </div>
+        <MessageBar intent={syncMessage.type === 'ok' ? 'success' : 'error'}>
+          <MessageBarBody>{syncMessage.text}</MessageBarBody>
+        </MessageBar>
       )}
 
-      {/* Subrequest Budget Telemetry (RNF-05) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-indigo-400" />
+      <Card className={styles.budgetCard}>
+        <div className={styles.budgetTop}>
+          <Subtitle2 className={styles.sectionTitle}>
+            <DeveloperBoard20Regular />
             Presupuesto de Subpeticiones del Worker (RNF-05)
-          </h3>
-          <span className="text-xs text-slate-400">
-            Último ciclo: <strong className="text-slate-100">{sub.last_used}</strong> / {sub.max_budget}
-          </span>
+          </Subtitle2>
+          <Caption1 className={styles.muted}>
+            Último ciclo: <strong>{sub.last_used}</strong> / {sub.max_budget}
+          </Caption1>
         </div>
 
-        <div className="h-2.5 bg-slate-950 border border-slate-800 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              budgetPct > 85 ? 'bg-amber-500' : 'bg-indigo-500'
-            }`}
-            style={{ width: `${budgetPct}%` }}
-          />
-        </div>
+        <ProgressBar
+          value={budgetRatio}
+          thickness="large"
+          color={budgetPct > 85 ? 'warning' : 'brand'}
+        />
 
-        <div className="grid grid-cols-3 gap-3 text-xs pt-1">
-          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
-            <p className="text-slate-500">Promedio reciente</p>
-            <p className="text-sm font-semibold text-slate-200 mt-0.5">{sub.avg_recent}</p>
+        <div className={styles.metricsGrid}>
+          <div className={styles.metricTile}>
+            <Caption1 className={styles.muted}>Promedio reciente</Caption1>
+            <Body1Strong>{sub.avg_recent}</Body1Strong>
           </div>
-          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
-            <p className="text-slate-500">Máximo reciente</p>
-            <p className="text-sm font-semibold text-slate-200 mt-0.5">{sub.max_recent}</p>
+          <div className={styles.metricTile}>
+            <Caption1 className={styles.muted}>Máximo reciente</Caption1>
+            <Body1Strong>{sub.max_recent}</Body1Strong>
           </div>
-          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80">
-            <p className="text-slate-500">Semillas activas</p>
-            <p className="text-sm font-semibold text-slate-200 mt-0.5">
-              Base: {state?.baseline_seeded ? 'Sí' : 'No'} · Notas: {state?.grades_seeded ? 'Sí' : 'No'}
-            </p>
+          <div className={styles.metricTile}>
+            <Caption1 className={styles.muted}>Semillas activas</Caption1>
+            <Body1Strong>
+              Base: {state?.baseline_seeded ? 'Sí' : 'No'} · Notas:{' '}
+              {state?.grades_seeded ? 'Sí' : 'No'}
+            </Body1Strong>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Sync Runs History Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-sm font-semibold text-slate-200">
-            Últimas {health.recent_runs.length} Ejecuciones (`sync_runs`)
-          </h3>
+      <Card className={styles.tableCard}>
+        <div className={styles.tableHeader}>
+          <HeartPulse20Regular />
+          <Subtitle2>
+            Últimas {health.recent_runs.length} Ejecuciones (sync_runs)
+          </Subtitle2>
         </div>
 
         {health.recent_runs.length === 0 ? (
-          <div className="p-6 text-center text-xs text-slate-400">
-            No hay ejecuciones registradas aún.
+          <div className={styles.emptyBody}>
+            <Body1>No hay ejecuciones registradas aún.</Body1>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950/70 text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">#</th>
-                  <th className="px-4 py-2.5 font-medium">Estado</th>
-                  <th className="px-4 py-2.5 font-medium">Inicio</th>
-                  <th className="px-4 py-2.5 font-medium">Subpeticiones</th>
-                  <th className="px-4 py-2.5 font-medium">Cambios</th>
-                  <th className="px-4 py-2.5 font-medium">Detalle</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/70">
-                {health.recent_runs.map((run) => (
-                  <tr key={run.id} className="hover:bg-slate-800/30">
-                    <td className="px-4 py-2.5 text-slate-400">{run.id}</td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+          <>
+            <div className={styles.mobileRunsList}>
+              {health.recent_runs.map((run) => (
+                <div key={run.id} className={styles.mobileRunRow}>
+                  <div className={styles.mobileRunTop}>
+                    <div className={styles.badgeRow}>
+                      <Caption1 className={styles.muted}>#{run.id}</Caption1>
+                      <Badge
+                        appearance="tint"
+                        color={
                           run.status === 'ok'
-                            ? 'bg-emerald-500/15 text-emerald-300'
+                            ? 'success'
                             : run.status === 'partial'
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : 'bg-rose-500/15 text-rose-300'
-                        }`}
+                            ? 'warning'
+                            : 'danger'
+                        }
                       >
                         {run.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-300 whitespace-nowrap">
+                      </Badge>
+                    </div>
+                    <Caption1 className={styles.muted}>
                       {formatUnixDate(run.started_at)}
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-300">{run.subrequests_used ?? '—'}</td>
-                    <td className="px-4 py-2.5 text-slate-300">{run.items_changed ?? 0}</td>
-                    <td className="px-4 py-2.5 text-rose-300 max-w-xs truncate">
-                      {run.error || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </Caption1>
+                  </div>
+                  <Caption1 className={styles.muted}>
+                    Subpeticiones: <strong>{run.subrequests_used ?? '—'}</strong> · Cambios:{' '}
+                    <strong>{run.items_changed ?? 0}</strong>
+                  </Caption1>
+                  {run.error && (
+                    <Caption1 className={styles.mobileRunError}>{run.error}</Caption1>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.desktopTableWrap}>
+              <Table
+                size="small"
+                style={{ tableLayout: 'auto' }}
+                aria-label="Historial de ejecuciones de sync"
+              >
+                <TableHeader>
+                  <TableRow>
+                    <TableHeaderCell>#</TableHeaderCell>
+                    <TableHeaderCell>Estado</TableHeaderCell>
+                    <TableHeaderCell>Inicio</TableHeaderCell>
+                    <TableHeaderCell>Subpeticiones</TableHeaderCell>
+                    <TableHeaderCell>Cambios</TableHeaderCell>
+                    <TableHeaderCell>Detalle</TableHeaderCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {health.recent_runs.map((run) => (
+                    <TableRow key={run.id}>
+                      <TableCell>{run.id}</TableCell>
+                      <TableCell>
+                        <Badge
+                          appearance="tint"
+                          color={
+                            run.status === 'ok'
+                              ? 'success'
+                              : run.status === 'partial'
+                              ? 'warning'
+                              : 'danger'
+                          }
+                        >
+                          {run.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell style={{ whiteSpace: 'nowrap' }}>
+                        {formatUnixDate(run.started_at)}
+                      </TableCell>
+                      <TableCell>{run.subrequests_used ?? '—'}</TableCell>
+                      <TableCell>{run.items_changed ?? 0}</TableCell>
+                      <TableCell className={styles.errorCell}>
+                        {run.error || '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
